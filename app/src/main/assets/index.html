@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daep TV Masjid Nurul Jihad sambiut</title>
+    <link rel="icon" href="web3.png">
+    <link rel="stylesheet" href="style2-rem.css"> 
+   <link rel="stylesheet" href="wow_book.css" type="text/css"/>
+   
+</head>
+<body>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div> 
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">☰ MENU</div>
+            <button class="close-btn" onclick="toggleSidebar()">✕</button>
+        </div>
+        <ul class="menu-items" id="menu">
+            <li tabindex="0" class="menu-item active" onclick="showContent('utama')">🏠 Utama</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('ayat')">📖 Ayat Al-Quran</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('video-quran')">🎥 Video Quran</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('kas')">💰 Kas Masjid</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('jadwal-kajian')">📅 Jadwal Kajian</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('video-kajian')">🎬 Video Kajian</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('khutbah')">🕌 Khutbah Jum'at</li>
+        </ul>
+    </div>
+    <div class="sidebar1-overlay" id="sidebarOverlay1" onclick="toggletema()"></div>
+    <div class="sidebar1" id="sidebar1">
+  <div class="sidebar-header1">
+    <div class="sidebar-title1">☰ Ganti Tema</div>
+    <button class="close-btn1" onclick="toggletema()">✕</button>
+  </div>
+  <ul class="menu-items1" id="menu1">
+    <li tabindex="0" class="menu-item1 active" onclick="changeTheme('theme-default')">Tema Dasar (Hijau)</li>
+    <li tabindex="-1" class="menu-item1" onclick="changeTheme('theme-blue')">Tema Biru</li>
+    <li tabindex="-1" class="menu-item1" onclick="changeTheme('theme-yellow')">Tema Kuning</li>
+    <li tabindex="-1" class="menu-item1" onclick="changeTheme('theme-pink')">Tema Merah Muda</li>
+    <li tabindex="-1" class="menu-item1" onclick="changeTheme('runing')">Animasi Alamat Berjalan 
+            <label class="switch">
+          <input type="checkbox" id="myToggle">
+          <span class="slider2 round"></span>
+        </label></li>
+   <li tabindex="-1" class="menu-item1">
+    <div class="controls">
+        <button id="zoom-in" class="ctrl-btn">+</button>
+        <button id="zoom-out" class="ctrl-btn">−</button>
+        <button id="fullscreen" class="ctrl-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="4 9 4 4 9 4"></polyline>
+        <polyline points="15 4 20 4 20 9"></polyline>
+        <polyline points="20 15 20 20 15 20"></polyline>
+        <polyline points="9 20 4 20 4 15"></polyline>
+    </svg></button>
+        <button id="refresh" class="ctrl-btn">🔄</button>
+    </div>
+</li>
+
+    
+  </ul>
+</div>
+ <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+  <script src="jquery-3.6.0.min.js"></script>
+ <!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script> 
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.css"> -->
+<script>
+// Definisi fungsi startScroll dan stopScroll
+function startScroll() {
+    const masjidName = document.getElementById('alamatberjalan');
+    const masjidName1 = document.getElementById('masjidName');
+    if (!masjidName) {
+        console.error('Elemen alamatberjalan tidak ditemukan - tidak bisa start scroll');
+        return false;
+    }
+    masjidName.style.transform = 'translateX(0%)';
+    masjidName.style.animation = 'marquee 10s linear infinite';
+    masjidName.style.animationPlayState = 'running';
+    masjidName1.style.transform = 'translateX(0%)';
+    masjidName1.style.animation = 'marquee1 7s linear infinite';
+    masjidName1.style.animationPlayState = 'running';
+    console.log('Scroll started');
+    return true;
+}
+
+function stopScroll() {
+    const masjidName = document.getElementById('alamatberjalan');
+    const masjidName1 = document.getElementById('masjidName');
+    if (!masjidName) {
+        console.error('Elemen alamatberjalan tidak ditemukan - tidak bisa stop scroll');
+        return false;
+    }
+    masjidName.style.animation = 'none';
+    masjidName.style.transform = 'translateX(0%)';
+     masjidName1.style.animation = 'none';
+    masjidName1.style.transform = 'translateX(0%)';
+    console.log('Scroll stopped');
+    return true;
+}
+
+// Fungsi untuk cek apakah scroll sedang on (animasi running)
+function isScrollRunning() {
+    const masjidName = document.getElementById('alamatberjalan');
+    const masjidName1 = document.getElementById('masjidName');
+    if (!masjidName) return false;
+    const computedStyle = getComputedStyle(masjidName);
+    return computedStyle.animationPlayState === 'running' && computedStyle.animationName === 'marquee';
+    const computedStyle1 = getComputedStyle(masjidName1);
+    return computedStyle1.animationPlayState === 'running' && computedStyle1.animationName === 'marquee1';
+}
+
+// Flag untuk mencegah penambahan listener berulang
+let toggleListenerAdded = false;
+let enterListenerAdded = false;
+
+function changeTheme(themeName) {
+    if (themeName === "runing") {
+        // Inisialisasi: Jangan panggil stopScroll() di sini, biarkan status default
+        const myToggle = document.getElementById('myToggle');
+        if (myToggle) {
+            myToggle.checked = isScrollRunning(); // Set checkbox berdasarkan status aktual
+        } else {
+            console.error('Elemen myToggle tidak ditemukan');
+        }
+        // Tambahkan listener untuk toggle checkbox hanya sekali
+        if (!toggleListenerAdded) {
+            if (myToggle) {
+                myToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        startScroll();
+                    } else {
+                        stopScroll();
+                    }
+                });
+                toggleListenerAdded = true;
+            }
+        }
+
+        // Tambahkan listener untuk tombol Enter hanya sekali
+        if (!enterListenerAdded) {
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    console.log('Enter key detected');
+                    const myToggle = document.getElementById('myToggle');
+                    if (!myToggle) {
+                        console.error('Elemen myToggle tidak ditemukan - toggle dibatalkan');
+                        return;
+                    }
+                    // Cek status aktual scroll (bukan flag)
+                    if (isScrollRunning()) {
+                        // Jika sedang on, matikan (off)
+                        if (stopScroll()) {
+                            myToggle.checked = false;
+                            console.log('Enter: Scroll off');
+                        }
+                    } else {
+                        // Jika sedang off, nyalakan (on)
+                        if (startScroll()) {
+                            myToggle.checked = true;
+                            console.log('Enter: Scroll on');
+                        }
+                    }
+                }
+            });
+            enterListenerAdded = true;
+        }
+    } else {
+        // Logika untuk tema lain
+        document.body.className = themeName;
+        const menuItems = document.querySelectorAll('.menu-item1');
+        menuItems.forEach(item => item.classList.remove('active'));
+        // Tambah class active ke item yang diklik (menggunakan querySelector untuk menemukan item aktif berdasarkan themeName)
+        const activeItem = document.querySelector(`.menu-item1[onclick*="changeTheme('${themeName}')"]`);
+        if (activeItem) {
+            activeItem.classList.add('active');
+        }
+        toggletema(); // Tutup menu setelah ganti tema
+    }
+}
+
+function toggleAyatForm() {
+    const ayatForm = document.getElementById('ayat-ayat');
+    if (ayatForm) {
+        ayatForm.classList.toggle('hidden');
+    } else {
+        console.error('Elemen ayat-ayat tidak ditemukan');
+    }
+}
+
+function toggleKasForm() {
+    const kasForm = document.getElementById('kas-kas');
+    if (kasForm) {
+        kasForm.classList.toggle('hidden');
+    } else {
+        console.error('Elemen kas-kas tidak ditemukan');
+    }
+}
+
+function toggleJadwalForm() {
+    const jadwalForm = document.getElementById('jadwal-jadwal');
+    if (jadwalForm) {
+        jadwalForm.classList.toggle('hidden');
+    } else { 
+        console.error('Elemen jadwal-jadwal tidak ditemukan');
+    }
+}
+/* =================================================================== */
+/*document.addEventListener('DOMContentLoaded', function() {
+    let zoomLevel = 1;
+    const step = 0.1;
+    const minZoom = 0.5;
+    const maxZoom = 2;
+    // pilih root yg akan di-zoom (bukan <body>)
+    const root = document.getElementById('app-root') || document.body;
+    function applyZoom() {
+        root.style.transform = `scale(${zoomLevel})`;
+        root.style.transformOrigin = "top left";
+        
+        // agar layout tetap fill dan tidak keluar batas
+        root.style.width = (100 / zoomLevel) + "%";
+        root.style.height = (100 / zoomLevel) + "%";
+    }
+
+    document.getElementById('zoom-in').addEventListener('click', function() {
+        if (zoomLevel < maxZoom) {
+            zoomLevel += step;
+            applyZoom();
+        }
+    });
+
+    document.getElementById('zoom-out').addEventListener('click', function() {
+        if (zoomLevel > minZoom) {
+            zoomLevel -= step;
+            applyZoom();
+        }
+    });
+
+    document.getElementById('fullscreen').addEventListener('click', function() {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            document.documentElement.msRequestFullscreen();
+        }
+    });
+}); */
+document.addEventListener('DOMContentLoaded', function() {
+
+    let zoomLevel = settings.zoomLevel || 1;
+    const step = 0.1;
+    const minZoom = 0.5;
+    const maxZoom = 2;
+
+    applyZoom(zoomLevel);
+
+    function saveZoomToDB() {
+    try {
+        db.run("INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)", [zoomLevel]);
+        saveDatabaseToIndexedDB();
+    } catch (e) {
+        console.log("SQLite save error:", e);
+    }
+}
+    document.getElementById('zoom-in').addEventListener('click', function() {
+        if (zoomLevel < maxZoom) {
+            zoomLevel += step;
+            applyZoom(zoomLevel);
+            saveZoomToDB();
+        }
+    });
+    document.getElementById('zoom-out').addEventListener('click', function() {
+        if (zoomLevel > minZoom) {
+            zoomLevel -= step;
+            applyZoom(zoomLevel);
+            saveZoomToDB();
+        }
+    });
+     document.getElementById('fullscreen').addEventListener('click', function () {
+    if (!document.fullscreenElement &&        // browser modern
+        !document.webkitFullscreenElement &&  // Safari
+        !document.msFullscreenElement) {      // IE/Edge
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+            docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+            docEl.webkitRequestFullscreen();
+        } else if (docEl.msRequestFullscreen) {
+            docEl.msRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+    });
+    document.getElementById('refresh').addEventListener('click', function () {
+        location.reload(); // reload halaman
+    });
+
+});
+
+</script>
+ <div class="ukuran">
+        <div id="app-root"> 
+    <div class="container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="left-section">
+                <div class="clock-box">
+                    <!--<span class="clock-icon">🕐</span> 
+                    <span class="clock" id="clock">00:00:00</span> -->
+                    <div class="clock"><span id="h">00</span><span id="sep">:</span><span id="m">00</span></div>
+
+                </div>
+            </div>
+            <!-- <button id="scrollSwitch">On</button> -->
+            
+            <!-- Masjid Info - Center -->
+            <div class="masjid-info">
+                <h1 id="masjidName">MASJID NURUL JIHAD</h1>
+                <p id="alamatberjalan"><span>📍</span> <span id="masjidAddress">Jl. Raya Masjid Desa</span></p>
+            </div>
+            
+            <div class="date-box">
+                <div class="hijri-date" id="hijriDate">📅 1 Muharram 1446H</div>
+                <div class="gregorian-date" id="gregorianDate">Senin, 1 Januari 2025</div>
+            </div>
+        </div>
+
+      
+        <div id="azanCountdownOverlay">
+    <div class="countdown-content">
+        <h3>Menuju Azan</h3>
+        <div class="countdown-timer">--:--:--</div>
+        <div class="countdown-label">Jam : Menit : Detik</div>
+    </div>
+</div>
+<div id="iqomahCountdownOverlay">
+    <div class="countdown-content">
+        <h3>Iqomah</h3>
+        <div class="countdown-timer">--:--</div>
+        <div class="countdown-label">Menit : Detik</div>
+    </div>
+</div>
+
+        <!-- Main Content - Utama -->
+        <div id="utama" class="content-section active">
+            <!-- Hero Section -->
+            <div class="hero-section">
+                <div class="hero-card">
+                    <img src="" alt="Islamic Architecture" class="hero-image" id="heroImage">
+                    <div class="hero-overlay">
+                        <div class="quote-text" id="quoteText">"Dan Dialah yang menjadikan malam dan siang silih berganti"</div>
+                        <div class="quote-source" id="quoteSource">(QS. Al-Furqan: 62)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prayer Times -->
+            <div class="prayer-section">
+               <!-- <div class="prayer-title">JADWAL SHOLAT</div> -->
+                <div class="prayer-times" id="prayerTimes">
+                    <!-- Prayer cards will be generated by JavaScript -->
+                </div>
+            </div>
+            <div class="footer">
+        <div class="running-text" id="runningText">Selamat datang di Masjid Al-Ikhlas. Mari bersama menjaga kebersihan dan ketertiban masjid.</div>
+    </div>
+
+        </div>
+
+        <!-- Other Content Sections -->
+        <div id="ayat" class="content-section">
+            <div class="two-column-layout">
+                <div class="sidebar-prayer">
+                    <div class="prayer-title">JADWAL SHOLAT</div>
+                    <div class="prayer-times" id="prayerTimesAyat"></div>
+                </div>
+                <div class="content-main">
+                    <div id="ayat-ayat" class="form-group ">
+                        <div class="sidebar-title1">✏️ Update Slide Ayat</div>
+                        <form id="uploadAyatForm" enctype="multipart/form-data">
+                        <input  type="file" name="pdfFile" accept=".pdf" required>
+                        <button class="btn btn-save" type="submit">Upload PDF Ayat</button>
+                        <br><hr>
+                        <small class="text-muted">
+           <!-- &rarr; Memilih<br> &darr; Menutup form input<br> &larr; Menu<br>Enter untuk eksekusi -->
+            <table border="0"><tr><td>&rarr;</td><td>: Memilih</td></tr>
+            <tr><td>&darr;</td><td>: Menutup form input</td></tr><tr><td>&larr;</td><td>: Menu</td></tr><tr><td>Ok/Enter</td><td>: Eksekusi</td></tr></table>
+        </small>
+                    </form>
+                    </div>
+                    <div id="ayatSlideshow" class="pdf-slideshow wowbook">
+                        <!-- Slideshow halaman PDF akan muncul di sini -->
+                    </div>
+                    
+                    <div class="footer-content">
+                        <div class="running-text-content" id="runningText"><b>📖 Ayat-ayat Al-Quran :</b> Menyajikan Ayat-ayat, tafsir dan hadist mengenai Al-Quran</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="video-quran" class="content-section">
+            <div class="two-column-layout">
+                <div class="sidebar-prayer">
+                    <div class="prayer-title">JADWAL SHOLAT</div>
+                    <div class="prayer-times" id="prayerTimesVideoQuran"></div>
+                </div>
+                <div class="content-main">
+                    <div class="video-section">
+                        <video id="videoQuran" controls preload="metadata">
+                            <source src="" type="video/mp4">
+                            Browser Anda tidak mendukung tag video.
+                        </video>
+                        <div class="tool-indicator" id="toolIndicatorVideoQuran">Fokus: Play/Stop</div>
+                        <div class="option-menu" id="optionMenuVideoQuran">
+                        <div class="option-item" data-subaction="download">Download</div>
+                        <div class="option-item" data-subaction="speed">Playback Speed</div>
+                        <div class="option-item" data-subaction="pip">Picture in Picture</div>
+                    </div>
+                    </div>
+                    <div class="footer-content">
+        <div class="running-text-content" id="runningText"><b>Content Video Islamic :</b> Menyajikan video-video Ayat-Ayat Al-Quran</div>
+    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="kas" class="content-section">
+            <div class="two-column-layout">
+                <div class="sidebar-prayer">
+                    <div class="prayer-title">JADWAL SHOLAT</div>
+                    <div class="prayer-times" id="prayerTimesKas"></div>
+                </div>
+                <div class="content-main">
+                    <div id="kas-kas" class="form-group ">
+                        <div class="sidebar-title1">✏️ Update Slide Keuangan</div>
+                         <form id="uploadKasForm" enctype="multipart/form-data">
+                            <input type="file" name="pdfFile" accept=".pdf" required>
+                            <button type="submit" class="btn btn-save">Upload PDF Kas</button>
+                            <small class="text-muted">
+           <!-- &rarr; Memilih<br> &darr; Menutup form input<br> &larr; Menu<br>Enter untuk eksekusi -->
+           <br><hr>
+            <table border="0"><tr><td>&rarr;</td><td>: Memilih</td></tr>
+            <tr><td>&darr;</td><td>: Menutup form input</td></tr><tr><td>&larr;</td><td>: Menu</td></tr><tr><td>Ok/Enter</td><td>: Eksekusi</td></tr></table>
+        </small>
+                        </form>
+                        </div>
+                        <div id="kasSlideshow" class="pdf-slideshow wowbook">
+                            <!-- Slideshow halaman PDF akan muncul di sini -->
+                        </div>
+                    <div class="footer-content">
+                        <div class="running-text-content" id="runningText"><b>💰 Kas Masjid :</b> Menyajikan Transparansi Keuangan Masjid dan Sedekah Jemaah</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="jadwal-kajian" class="content-section">
+            <div class="two-column-layout">
+                <div class="sidebar-prayer">
+                    <div class="prayer-title">JADWAL SHOLAT</div>
+                    <div class="prayer-times" id="prayerTimesJadwalKajian"></div>
+                </div>
+                <div class="content-main">
+                    <div id="jadwal-jadwal" class="form-group ">
+                        <div class="sidebar-title1">✏️ Update Slide Jadwal</div>
+                        <form id="uploadJadwalForm" enctype="multipart/form-data">
+                            <input type="file" name="pdfFile" accept=".pdf" required>
+                            <button type="submit" class="btn btn-save">Upload PDF Jadwal</button>
+                            <br><hr>
+                            <small class="text-muted">
+           <!-- &rarr; Memilih<br> &darr; Menutup form input<br> &larr; Menu<br>Enter untuk eksekusi -->
+            <table border="0"><tr><td>&rarr;</td><td>: Memilih</td></tr>
+            <tr><td>&darr;</td><td>: Menutup form input</td></tr><tr><td>&larr;</td><td>: Menu</td></tr><tr><td>Ok/Enter</td><td>: Eksekusi</td></tr></table>
+        </small>
+                        </form>
+                        </div>
+                        <div id="jadwalSlideshow" class="pdf-slideshow wowbook">
+                            <!-- Slideshow halaman PDF akan muncul di sini -->
+                        </div>
+                <div class="footer-content">
+                        <div class="running-text-content" id="runningText"><b>📅  Jadwal Kajian Islamic :</b> Menyajikan Jadwal Ceramah-ceramah/Kajian Keagamaan</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="video-kajian" class="content-section">
+            <div class="two-column-layout">
+                <div class="sidebar-prayer">
+                    <div class="prayer-title">JADWAL SHOLAT</div>
+                    <div class="prayer-times" id="prayerTimesVideoKajian"></div>
+                </div>
+                <div class="content-main">
+                    <div class="video-section">
+                        <video id="videoKajian" controls preload="metadata">
+                            <source src="" type="video/mp4">
+                            Browser Anda tidak mendukung tag video.
+                        </video>
+                        <div class="tool-indicator" id="toolIndicatorVideoKajian">Fokus: Play/Stop</div>
+                        <div class="option-menu" id="optionMenuVideoKajian">
+                            <div class="option-item" data-subaction="download">Download</div>
+                            <div class="option-item" data-subaction="speed">Playback Speed</div>
+                            <div class="option-item" data-subaction="pip">Picture in Picture</div>
+                        </div>
+                        <div class="fule">
+                        </div>
+                    <div class="footer-content">
+                        <div class="running-text-content" id="runningText"><b>🎬 Video Kajian Islamic :</b> Menyajikan video-video Kajian Keagamaan</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div id="khutbah" class="content-section">
+            <div class="two-column-layout">
+                <div class="sidebar-prayer">
+                    <div class="prayer-title">JADWAL SHOLAT</div>
+                    <div class="prayer-times" id="prayerTimesKhutbah"></div>
+                </div>
+                <div class="content-main">
+                    <div class="video-section">
+                        <video id="videoKhutbah" controls preload="metadata"> 
+                            <source src="" type="video/mp4">
+                            Browser Anda tidak mendukung tag video.
+                        </video>
+                        <div class="tool-indicator" id="toolIndicatorVideoKhutbah">Fokus: Play/Stop</div>
+                        <div class="option-menu" id="optionMenuVideoKhutbah">
+                        <div class="option-item" data-subaction="download">Download</div>
+                        <div class="option-item" data-subaction="speed">Playback Speed</div>
+                        <div class="option-item" data-subaction="pip">Picture in Picture</div>
+                    </div>
+                    <div class="footer-content">
+                        <div class="running-text-content" id="runningText"><b>🕌 Khutbah Jum'at :</b> Teks dan video khutbah Jum'at akan ditampilkan di sini.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+    <!-- Footer -->
+    <button class="menu-btn" onclick="toggleSidebar()"><img src="web3.png"><br>daepTV</button>
+    <!-- Admin Toggle Button -->
+    <button class="admin-toggle" onclick="toggleAdmin()">⚙️ Admin</button>
+    <!-- Elemen panah statis untuk navigasi -->
+</div>
+
+
+<div id="arrow-up" style="display: none; position: fixed; top: 10px; right: 10px; font-size: 24px; color: red; z-index: 9999;">↑</div>
+<div id="arrow-down" style="display: none; position: fixed; bottom: 10px; right: 10px; font-size: 24px; color: red; z-index: 9999;">↓</div>
+
+    <!-- Admin Panel Overlay -->
+    <div class="admin-overlay" id="adminOverlay" onclick="toggleAdmin()"></div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <h2>⚙️ Panel Admin</h2>
+        
+        <div class="form-group">
+            <label>Nama Masjid</label>
+            <input type="text" id="adminMasjidName" tabindex="0" class="active" placeholder="Nama Masjid">
+        </div>
+
+        <div class="form-group">
+            <label>Alamat Masjid</label>
+            <input type="text" id="adminMasjidAddress" placeholder="Alamat Masjid">
+        </div>
+
+        <h3 style="margin-top: 30px; color: #1a5c44;">Waktu Sholat & Delay Iqomah</h3>
+            <div class="form-group row">
+                <label>Imsak</label>
+                <input type="time" id="adminImsak">
+            </div>
+            
+            <div class="form-group row">
+                <label>Subuh</label>
+                <input type="time" id="adminSubuh">
+            
+                <input type="number" id="delaySubuh" class="delay-input" min="0" placeholder="Delay (m)">
+            </div>
+            
+            <div class="form-group row">
+                <label>Syuruq</label>
+                <input type="time" id="adminSyuruq">
+            </div>
+            
+            <div class="form-group row">
+                <label>Dzuhur</label>
+                <input type="time" id="adminDzuhur">
+            
+                <input type="number" id="delayDzuhur" class="delay-input" min="0" placeholder="Delay (m)">
+            </div>
+            
+            <div class="form-group row">
+                <label>Ashar</label>
+                <input type="time" id="adminAshar">
+            
+                <input type="number" id="delayAshar" class="delay-input" min="0" placeholder="Delay (m)">
+            </div>
+            
+            <div class="form-group row">
+                <label>Maghrib</label>
+                <input type="time" id="adminMaghrib">
+            
+                <input type="number" id="delayMaghrib" class="delay-input" min="0" placeholder="Delay (m)">
+            </div>
+            
+            <div class="form-group row">
+                <label>Isya</label>
+                <input type="time" id="adminIsya">
+            
+                <input type="number" id="delayIsya" class="delay-input" min="0" placeholder="Delay (m)">
+            </div>
+
+        <h3 style="margin-top: 30px; color: #1a5c44;">Quote Al-Quran</h3>
+        
+        <div class="form-group">
+            <label>Teks Quote</label>
+            <textarea id="adminQuoteText" rows="3" placeholder="Masukkan ayat Al-Quran"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Sumber (Surah:Ayat)</label>
+            <input type="text" id="adminQuoteSource" placeholder="(QS. Al-Furqan: 62)">
+        </div>
+
+        <h3 style="margin-top: 30px; color: #1a5c44;">Gambar Hero</h3>
+        
+        <div class="form-group">
+            <label>Upload Gambar Hero (JPG/PNG)</label>
+            <input type="file" id="adminHeroImage" accept="image/*">
+        </div>
+
+        <h3 style="margin-top: 30px; color: #1a5c44;">Video</h3>
+        
+        <div class="form-group">
+            <label>Upload Video Quran (MP4)</label>
+            <input type="file" id="adminVideoQuran" accept="video/mp4">
+        </div>
+
+        <div class="form-group">
+            <label>Upload Video Kajian (MP4)</label>
+            <input type="file" id="adminVideoKajian" accept="video/mp4">
+        </div>
+
+        <div class="form-group">
+            <label>Upload Video Khutbah (MP4)</label>
+            <input type="file" id="adminVideoKhutbah" accept="video/mp4">
+        </div>
+
+        <h3 style="margin-top: 30px; color: #1a5c44;">Audio Peringatan</h3>
+        
+        <div class="form-group">
+            <label>Upload Audio Azan/Peringatan (MP3)</label>
+            <input type="file" id="adminAudio" accept="audio/mp3">
+        </div>
+
+        <h3 style="margin-top: 30px; color: #1a5c44;">Running Text Footer</h3>
+        
+        <div class="form-group">
+            <label>Teks Running</label>
+            <textarea id="adminRunningText" rows="2" placeholder="Masukkan teks running"></textarea>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-save" onclick="saveAdminSettings()">💾 Simpan</button>
+            <button class="btn btn-cancel" onclick="toggleAdmin()">✖ Batal</button>
+        </div>
+    </div>
+
+   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script> -->
+   <!--  <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script> -->
+   <!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script> -->
+<!-- <script src="https://sql.js.org/dist/sql-wasm.js"></script> -->
+
+    <script src="pdf.min.js"></script> 
+   <script src="script2.js"></script>
+<script src="sql-wasm.js"></script>
+<!-- Pakai PDF.js 1.10.100 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/1.10.100/pdf.min.js"></script>
+<script>
+  window.PDFJS = pdfjsLib || window.PDFJS;  // pastikan tersedia untuk wow-book
+</script>
+<script src="book/jquery.js"></script>
+<script src="book/pdf.combined.min.js"></script>
+<script src="book/wow_book.min.js"></script> -->
+
+<script>
+ pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+ 
+const slideshows = {
+  ayat: {
+    id: 'ayatSlideshow',
+    initialized: false,
+    pdfBlob: null,  // Isi pdfBlob sesuai kebutuhan, misalnya dari fetch atau input user
+  },
+  kas: {
+    id: 'kasSlideshow',
+    initialized: false,
+    pdfBlob: null,
+  },
+  jadwal: {
+    id: 'jadwalSlideshow',
+    initialized: false,
+    pdfBlob: null,
+  }
+};
+
+function hideAllSlideshows() {
+  for (const key in slideshows) {
+    const div = document.getElementById(slideshows[key].id);
+    div.style.display = 'none';
+    // Sembunyikan toolbar untuk slideshow yang tidak aktif
+    const api = $(`#${slideshows[key].id}`).data('wowBook');
+    if (api && api.toolbar) {
+      api.toolbar.hide();
+    }
+  }
+}
+
+async function showSlideshow(sectionKey) {
+  hideAllSlideshows();
+  const slideshow = slideshows[sectionKey];
+  if (!slideshow) return;
+  const div = document.getElementById(slideshow.id);
+  div.style.display = 'block';
+
+  if (!slideshow.initialized) {
+    await loadPdfSlideshow(slideshow.pdfBlob, slideshow.id, true); // true = tampilkan toolbar
+    slideshow.initialized = true;
+  } else {
+    // Jika sudah diinisialisasi, pastikan toolbar ditampilkan untuk slideshow aktif
+    const api = $(`#${slideshow.id}`).data('wowBook');
+    if (api && api.toolbar) {
+      api.toolbar.show();
+    }
+  }
+}
+
+// Modifikasi fungsi loadPdfSlideshow untuk memastikan tampilan 100% dan toolbar selalu ditampilkan jika diminta
+async function loadPdfSlideshow3(pdfBlob, slideshowId, showToolbar = false) {
+  const slideshow = document.getElementById(slideshowId);
+  if (!slideshow) return;
+  slideshow.innerHTML = '';
+  if (!pdfBlob) {
+    slideshow.innerHTML = '<p>Tidak ada PDF untuk ditampilkan.</p>';
+    return;
+  }
+  try {
+    const pdfBlobWithType = new Blob([pdfBlob], { type: 'application/pdf' });
+    const pdfUrl = URL.createObjectURL(pdfBlobWithType);
+    const bookOptions = {
+      height: '100%',  // Set ke 100% untuk tinggi penuh
+      width: '100%',   // Set ke 100% untuk lebar penuh
+      centeredWhenClosed: true,
+      hardcovers: false,
+      pageNumbers: false,
+      toolbar: showToolbar ? "lastLeft, left, right, lastRight, toc, zoomin, zoomout, slideshow, flipsound, fullscreen, thumbnails, download" : "",
+      responsiveHandleWidth: 50,  // Aktifkan responsivitas agar sesuai container
+      containerPadding: "0",
+      pdf: pdfUrl,
+      sound: false,
+      flipsound: false,
+      soundPath: null,
+      gutterShadow: false,
+      loadingProgress: false,
+      singlePage: true,
+      doublePage: false,
+    };
+    $(slideshow).wowBook(bookOptions);
+    // Pastikan container slideshow mengisi 100% dari parent
+    slideshow.style.width = "100%";
+    slideshow.style.height = "100%";
+    slideshow.style.margin = "0";
+    slideshow.style.padding = "0";
+    slideshow.style.boxSizing = "border-box";  // Pastikan padding tidak memengaruhi ukuran
+
+    // Panggil show toolbar secara eksplisit jika showToolbar true
+    if (showToolbar) {
+      setTimeout(() => {
+        const api = $(slideshow).data('wowBook');
+        if (api && api.toolbar) {
+          api.toolbar.show();
+        }
+      }, 300); // Delay agar wowBook sudah siap
+    }
+  } catch (error) {
+    console.error('Error saat memuat flipbook PDF:', error);
+    slideshow.innerHTML = '<p>Gagal memuat PDF. Periksa file.</p>';
+  }
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+// Top-level build file; Android Gradle Plugin may need newer versions in your local environment.
+buildscript {
+    repositories { google(); mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:7.0.4' }
+}
+allprojects { repositories { google(); mavenCentral() } }

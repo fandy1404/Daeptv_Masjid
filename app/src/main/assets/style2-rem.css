@@ -1,0 +1,1561 @@
+/* Tema dasar hijau */
+body.theme-default {
+  /*background: linear-gradient(180deg, #2d7a5f 0%, #6fcf97 100%); */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #2d7a5f;
+    color: #ffffff;
+    overflow: hidden; /* Prevent any scrolling */
+    min-height: 100vh;
+    width: 100vw;
+}
+
+body.theme-default header,
+body.theme-default footer {
+  background: linear-gradient(180deg, #1a5c44 0%, #0d3025 100%);
+}
+
+body.theme-default .sidebar-prayer {
+  background: linear-gradient(180deg, #1a5c44 0%, #0d3025 100%);
+}
+
+/* Tema biru */
+body.theme-blue {
+  background: linear-gradient(180deg, #a2d8f7 0%, #e0f7fa 100%);
+}
+body.theme-blue .clock {
+    color: black;
+}body.theme-blue .gregorian-date {
+    color: black;
+}
+body.theme-blue .masjid-info p {
+    color: black;
+}
+body.theme-blue .hijri-date {
+    color: black;
+}
+body.theme-blue header,
+body.theme-blue footer {
+  background: linear-gradient(180deg, #00695c 0%, #004d40 100%);
+}
+body.theme-blue .prayer-section {
+  background: linear-gradient(180deg, #00695c 0%, #004d40 100%);
+}
+body.theme-blue .sidebar-prayer {
+  background: linear-gradient(180deg, #00695c 0%, #004d40 100%);
+}
+
+/* Tema kuning */
+body.theme-yellow {
+  background: linear-gradient(180deg, #fff9c4 0%, #ffe082 100%);
+}
+body.theme-yellow .clock {
+    color: black;
+}
+body.theme-yellow .gregorian-date {
+    color: black;
+}
+body.theme-yellow .masjid-info p {
+    color: black;
+}
+body.theme-yellow .hijri-date {
+    color: black;
+}
+body.theme-yellow header,
+body.theme-yellow footer {
+  background: linear-gradient(180deg, #ef6c00 0%, #e65100 100%);
+}
+body.theme-yellow .prayer-section {
+  background: linear-gradient(180deg, #ef6c00 0%, #e65100 100%);
+}
+body.theme-yellow .sidebar-prayer {
+  background: linear-gradient(180deg, #ef6c00 0%, #e65100 100%);
+}
+
+/* Tema merah muda */
+body.theme-pink {
+  background: linear-gradient(180deg, #f8bbd0 0%, #f48fb1 100%);
+}
+body.theme-pink .clock {
+    color: black;
+}
+body.theme-pink .gregorian-date {
+    color: black;
+}
+body.theme-pink .masjid-info p {
+    color: black;
+}
+body.theme-pink .hijri-date {
+    color: black;
+}
+body.theme-pink header,
+body.theme-pink footer {
+  background: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
+}
+body.theme-pink .prayer-section {
+  background: linear-gradient(180deg, #FF1493 0%, #E9967A 100%);
+}
+body.theme-pink .sidebar-prayer {
+  background: linear-gradient(180deg, #FF1493 0%, #E9967A 100%);
+}
+
+/* Pertahankan warna font dan ukuran font yang sudah ada di stylesheet */
+
+body, header, footer, .sidebar-prayer {
+  transition: background 0.5s ease;
+}
+
+
+/* ================================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #2d7a5f;
+    color: #ffffff;
+    overflow: hidden; /* Prevent any scrolling */
+    min-height: 100vh;
+    width: 100vw;
+}
+
+.container {
+    width: 100vw;
+    height: 100vh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.focus-highlight {
+  outline: 0.2rem solid #1a5c44;
+  background-color: #e0f2f1;
+}
+
+/* Top Bar - Header */
+.top-bar {
+   /* background: linear-gradient(180deg, #1a5c44 0%, #0d3025 100%); */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2.0rem 4.0rem;
+    width: 100%;
+    height: 15vh; /* Fixed height for top bar */
+}
+
+.left-section {
+    display: flex;
+    gap: 2.0rem;
+    left: 2.2rem;
+    align-items: center;
+    max-width:25%;
+}
+
+.menu-btn {
+ /*   background: #ffd700;
+    border: none;
+    width: 5.0rem;
+    height: 5.0rem;
+    border-radius: 1.0rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.0rem;
+    box-shadow: 0 0.4rem 1.5rem rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease; 
+    background-image: url('web3.png');
+  background-size: cover; 
+  background-position: center; 
+  background-repeat: no-repeat; */
+    position: fixed;
+    top: 0.5rem;
+    left: 0;
+     background: #ffd700;
+    border: none;
+    color: #0d3025;
+    padding: 0.3rem 1.0rem;
+    border-radius: 1.0rem;
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 0.4rem 1.5rem rgba(0, 0, 0, 0.3);
+    z-index: 500;
+    transition: all 0.3s ease;
+}
+.menu-btn img {
+  height: 1em; /* tinggi gambar sama dengan ukuran font */
+  width: auto; /* menjaga proporsi gambar */
+  vertical-align: middle; /* agar sejajar dengan teks */
+}
+
+.menu-btn:hover {
+    transform: translateY(-0.2rem);
+    box-shadow: 0 0.6rem 2.0rem rgba(0, 0, 0, 0.4);
+}
+
+.clock-box {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(1.0rem);
+    border: 0.2rem solid rgba(255, 255, 255, 0.2);
+    border-radius: 1.5rem;
+    padding: 1.2rem 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+}
+
+.clock-icon {
+    font-size: 2.4rem;
+}
+
+.clock {
+    font-size: 7.2rem;
+    font-weight: bold;
+    letter-spacing: 0.1rem;
+}
+#sep {
+    display: inline-block;
+    width: 2.5rem; /* pastikan lebar tetap */
+    text-align: center;
+}
+
+.date-box {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(1.0rem);
+    border: 0.2rem solid rgba(255, 255, 255, 0.2);
+    border-radius: 1.5rem;
+    padding: 1.2rem 2.5rem;
+    text-align: center;
+    
+}
+.hijri-date, .gregorian-date {
+    font-size: 2.2rem;
+    font-weight: bold;
+}
+
+
+/* Masjid Info */
+.masjid-info {
+    text-align: center;
+    flex: 1;
+    padding: 0 2.0rem;
+     overflow: hidden; /* Mencegah teks keluar dari batas div */
+}
+
+.masjid-info h1 {
+    font-size: 6rem;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 0.1rem;
+    text-shadow: 0.2rem 0.2rem 0.8rem rgba(0, 0, 0, 0.5);
+}
+
+#alamatberjalan {
+    position: relative; /* Agar transform berfungsi */
+    white-space: nowrap; /* Mencegah teks wrap ke baris baru */
+    transform: translateY(0%); /* Posisi awal: tengah (akan diubah animasi) */
+    transition: transform 0.5s ease; /* Opsional: transisi halus saat start/stop */
+}
+
+.masjid-info p {
+    font-size: 2.6rem;
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+}
+
+/* Removed original #countdownSection grid layout */
+/* Azan Countdown Overlay (Full-Frame Popup) */
+#azanCountdownOverlay {
+    display: none; /* sembunyikan secara default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+   /* background: rgba(0, 0, 0, 0.8); 
+    backdrop-filter: blur(1.0rem); */
+    z-index: 1500;
+    align-items: center;
+    justify-content: center;
+    background-image: url('countazan.gif');  /* Ganti dengan path GIF Anda */
+       background-size: cover;  /* Agar GIF menutupi seluruh area */
+       background-position: center;  /* Posisikan di tengah */
+       background-repeat: no-repeat;  /* Jangan ulangi */
+}
+   #azanCountdownOverlay1 {
+       background-image: url('countazan.gif');  /* Ganti dengan path GIF Anda */
+       background-size: cover;  /* Agar GIF menutupi seluruh area */
+       background-position: center;  /* Posisikan di tengah */
+       background-repeat: no-repeat;  /* Jangan ulangi */
+       /* Jika perlu, tambahkan overlay untuk membuat teks lebih mudah dibaca */
+       /* background-color: rgba(0, 0, 0, 0.5); */  /* Contoh overlay gelap */
+       backdrop-filter: blur(1.5rem);  /* Pertahankan jika ingin blur di belakang */
+       padding: 5.0rem;
+       border-radius: 3.0rem;
+       text-align: center;
+       border: 0.4rem solid #ffd700;
+       max-width: 70%;
+       width: 90%;
+   }
+   
+
+#azanCountdownOverlay.active {
+    display: flex; /* tampilkan saat aktif */
+}
+
+#azanCountdownOverlay .countdown-content {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(1.5rem);
+    padding: 5.0rem;
+    border-radius: 3.0rem;
+    text-align: center;
+    border: 0.4rem solid #ffd700;
+    max-width: 70%;
+    width: 90%;
+}
+
+#azanCountdownOverlay h3 {
+    font-size: 5.2rem;
+    color: #ffd700;
+    margin-bottom: 2.0rem;
+}
+
+#azanCountdownOverlay .countdown-timer {
+    font-size: 8.2rem;
+    font-weight: bold;
+    color: #ffffff;
+    margin: 2.0rem 0;
+}
+
+#azanCountdownOverlay .countdown-label {
+    font-size: 2.4rem;
+    opacity: 0.9;
+}
+
+/* Iqomah Countdown Overlay (Full-Frame Popup) */
+#iqomahCountdownOverlay {
+    display: none; /* sembunyikan secara default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(1.0rem);
+    z-index: 1500;
+    align-items: center;
+    justify-content: center;
+}
+
+#iqomahCountdownOverlay.active {
+    display: flex; /* tampilkan saat aktif */
+}
+
+#iqomahCountdownOverlay .countdown-content {
+    /* background: rgba(255, 255, 255, 0.1); */
+    backdrop-filter: blur(1.5rem);
+    padding: 5.0rem;
+    border-radius: 3.0rem;
+    text-align: center;
+    border: 0.4rem solid #ffd700;
+    max-width: 60.0rem;
+    width: 90%;
+     background-image: url('countazan.gif');  /* Ganti dengan path GIF Anda */
+       background-size: cover;  /* Agar GIF menutupi seluruh area */
+       background-position: center;  /* Posisikan di tengah */
+       background-repeat: no-repeat;  /* Jangan ulangi */
+}
+
+#iqomahCountdownOverlay h3 {
+    font-size: 5.2rem;
+    color: #ffd700;
+    margin-bottom: 2.0rem;
+}
+
+#iqomahCountdownOverlay .countdown-timer {
+    font-size: 8.2rem;
+    font-weight: bold;
+    color: #ffffff;
+    margin: 2.0rem 0;
+}
+
+#iqomahCountdownOverlay .countdown-label {
+    font-size: 2.4rem;
+    opacity: 0.9;
+}
+
+
+ .hidden {
+            display: none;
+        }
+/* Hero Image Section */
+/* Hero Image Section */
+.hero-section {
+    height: 70%; /* 30vh Fixed height for hero */
+    width: 100%;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+}
+
+.hero-card {
+    background: #ffffff;
+    border-radius: 3.0rem;
+    padding: 0.8rem;
+    box-shadow: 0 1.0rem 4.0rem rgba(0, 0, 0, 0.5);
+    max-width: 100%;
+    width: 100%;
+    border: 0.4rem solid #ffd700;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative; /* Added for overlay positioning */
+}
+
+.hero-image {
+    width: 100%; /* Full width within hero-card */
+    height: 100%; /* Fit within hero-card */
+    object-fit: cover;
+    border-radius: 2.5rem;
+}
+
+.hero-overlay {
+    position: absolute;
+    bottom: 1.0rem;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    width: 90%;
+    background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.2) 100%);
+    backdrop-filter: blur(0.8rem);
+    padding: 1.5rem 2.0rem;
+    border-radius: 1.5rem;
+}
+
+
+.star-icon {
+    font-size: 3.0rem;
+    margin-bottom: 0.5rem;
+    display: block;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.quote-text {
+    font-size: 2.0rem;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.quote-source {
+    font-size: 1.4rem;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+/* Prayer Times Section */
+.prayer-section {
+    height: 20%; /* 40vh Fixed height for prayer section */
+    padding: 0.5rem 1.0rem;
+    display: flex;
+    
+    bottom: 2.0rem;
+    flex-direction: column;
+}
+
+.prayer-title {
+    text-align: center;
+    font-size: 2.4rem;
+    color: #ffd700;
+    margin-bottom: 1.0rem;
+    font-weight: bold;
+    letter-spacing: 0.3rem;
+}
+
+.prayer-times {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1rem;                       /* 10px */
+    border-radius: 2rem;             /* 20px */
+    flex: 1;
+
+    width: 100%;
+    white-space: nowrap;             /* anti wrap */
+    overflow-x: auto;                /* opsional scroll jika zoom */
+    overflow-y: hidden;
+}
+
+.prayer-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(1rem);     /* 10px */
+    padding: 1rem 0.5rem;            /* 10px 5px */
+    border-radius: 1rem;             /* 10px */
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 0.2rem solid rgba(255, 255, 255, 0.15); /* 2px */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    position: relative;
+    flex-shrink: 0;                  /* anti wrap */
+}
+
+.prayer-section .prayer-card {
+    align-items: center;
+    justify-content: space-between;
+    border-top: 0.6rem solid;        /* 6px */
+    border-radius: 0 1rem 1rem 0;    /* 0 10px 10px 0 */
+}
+
+.prayer-section .prayer-card:nth-child(1) { border-top-color: #ff0000; }
+.prayer-section .prayer-card:nth-child(2) { border-top-color: #ff7f00; }
+.prayer-section .prayer-card:nth-child(3) { border-top-color: #ffff00; }
+.prayer-section .prayer-card:nth-child(4) { border-top-color: #00ff00; }
+.prayer-section .prayer-card:nth-child(5) { border-top-color: #0000ff; }
+.prayer-section .prayer-card:nth-child(6) { border-top-color: #4b0082; }
+.prayer-section .prayer-card:nth-child(7) { border-top-color: #9400d3; }
+
+.prayer-card:hover {
+    transform: translateY(-0.2rem);  /* -2px */
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4); /* 0 5px 15px */
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.prayer-card.next {
+    background: #ffd700;
+    color: #0d3025;
+    border-color: #ffd700;
+    box-shadow: 0 0.5rem 1.5rem rgba(255, 215, 0, 0.5);
+}
+
+.next-label {
+    position: absolute;
+    top: -0.8rem;                    /* -8px */
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2d6e53;
+    color: #ffd700;
+    padding: 0.2rem 1rem;            /* 2px 10px */
+    border-radius: 0.8rem;           /* 8px */
+    font-size: 1.8rem;               /* 18px */
+    font-weight: bold;
+    letter-spacing: 0.1rem;          /* 1px */
+}
+
+.prayer-card.next .next-label {
+    background: #0d3025;
+}
+
+.prayer-name {
+    font-size: 4rem;                 /* 40px */
+    font-weight: bold;
+    margin-bottom: 0.5rem;           /* 5px */
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;          /* 1px */
+}
+
+.prayer-card.next .prayer-name {
+    color: #0d3025;
+}
+
+.prayer-time {
+    font-size: 4rem;                 /* 40px */
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.prayer-card.next .prayer-time {
+    color: #0d3025;
+}
+
+/*#ayatSlideshow {
+    position: relative; 
+    width: 100%;
+    height: 100%; 
+    background: #f0f0f0;  
+     z-index: 1; 
+}
+#ayat-ayat {
+    position: fixed;
+    top: 50%;
+    left: 7%;
+            transform: translate(-50%, -50%);
+    width: 35.0rem;
+    height: 50%;
+    background: rgba(13, 48, 37, 0.98);
+    backdrop-filter: blur(2.0rem);
+    padding: 3.0rem;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0.5rem 0 3.0rem rgba(0, 0, 0, 0.5);
+    overflow-y: auto; 
+   /* position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 2.0rem;
+            border-radius: 1.0rem;
+            font-size: 1.8rem;
+            display: none;
+            z-index: 20; 
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out; 
+}
+#ayat-ayat.overlay {
+   right: 1.0rem;
+} */
+#ayat-ayat {
+    position: fixed;
+    top: 0;
+    left: -35.0rem;
+    width: 35.0rem;
+    height: 100vh;
+    background: rgba(13, 48, 37, 0.98);
+    backdrop-filter: blur(2.0rem);
+    padding: 3.0rem;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0.5rem 0 3.0rem rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+#ayat-ayat.active {
+    right: 1.0rem;
+}
+#kas-kas {
+    position: fixed;
+    top: 0;
+    left: -35.0rem;
+    width: 35.0rem;
+    height: 100vh;
+    background: rgba(13, 48, 37, 0.98);
+    backdrop-filter: blur(2.0rem);
+    padding: 3.0rem;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0.5rem 0 3.0rem rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+#kas-kas.active {
+    right: 1.0rem;
+}
+#jadwal-jadwal {
+    position: fixed;
+    top: 0;
+    left: -35.0rem;
+    width: 35.0rem;
+    height: 100vh;
+    background: rgba(13, 48, 37, 0.98);
+    backdrop-filter: blur(2.0rem);
+    padding: 3.0rem;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0.5rem 0 3.0rem rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+#jadwal-jadwal.active {
+    right: 1.0rem;
+}
+/* Sidebar Menu */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -35.0rem;
+    width: 35.0rem;
+    height: 100vh;
+    background: rgba(13, 48, 37, 0.98);
+    backdrop-filter: blur(2.0rem);
+    padding: 3.0rem;
+    transition: left 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0.5rem 0 3.0rem rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+.sidebar.active {
+    left: 0;
+}
+.sidebar1 {
+    position: fixed;
+    top: 0;
+    right: -35.0rem;
+    width: 35.0rem;
+    height: 100vh;
+    background: rgba(13, 48, 37, 0.98);
+    backdrop-filter: blur(2.0rem);
+    padding: 3.0rem;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0.5rem 0 3.0rem rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+.sidebar1.active {
+    right: 0;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+.sidebar1-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+}
+
+.sidebar1-overlay.active {
+    display: block;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3.0rem;
+    padding-bottom: 2.0rem;
+    border-bottom: 0.2rem solid rgba(255, 215, 0, 0.3);
+}
+
+.sidebar-title {
+    font-size: 2.4rem;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 3.0rem;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.menu-items {
+    list-style: none;
+}
+.sidebar-header1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3.0rem;
+    padding-bottom: 2.0rem;
+    border-bottom: 0.2rem solid rgba(255, 215, 0, 0.3);
+}
+
+.sidebar-title1 {
+    font-size: 2.4rem;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.close-btn1 {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 3.0rem;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.menu-items1 {
+    list-style: none;
+}
+
+.menu-item {
+    padding: 1.5rem 2.0rem;
+    margin-bottom: 1.0rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 0.2rem solid transparent;
+    font-size: 1.6rem;
+}
+
+.menu-item:hover {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.3);
+    transform: translateX(0.5rem);
+}
+
+.menu-item1.active {
+    background: #ffd700;
+    color: #0d3025;
+    font-weight: bold;
+}
+
+.menu-item1 {
+    padding: 1.5rem 2.0rem;
+    margin-bottom: 1.0rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 0.2rem solid transparent;
+    font-size: 1.6rem;
+}
+
+.menu-item1:hover {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.3);
+    transform: translateX(0.5rem);
+}
+
+.menu-item.active {
+    background: #ffd700;
+    color: #0d3025;
+    font-weight: bold;
+}
+
+/* Content Sections (matching layout_content-section.png for non-utama) */
+.content-section {
+    display: none;
+    height: 90vh; /* Full height minus top-bar */
+    width: 100%;
+}
+
+.content-section.active {
+    display: block;
+}
+
+/* Two Column Layout for Menu Pages */
+.two-column-layout {
+    display: grid;
+    grid-template-columns: 35.0rem 1fr;
+    gap: 2.0rem;
+    height: 100%;
+    padding: 0.8rem;
+}
+
+.sidebar-prayer {
+    background: linear-gradient(180deg, #1a5c44 0%, #0d3025 100%);
+    padding: 2.0rem;
+    border-radius: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-prayer .prayer-times {
+    grid-template-columns: 1fr;
+    gap: 1.0rem;
+    flex: 1;
+}
+
+.sidebar-prayer .prayer-card {
+    padding: 1.0rem;
+    display: flex;
+    flex-direction: row; /* Horizontal layout for name and time side-by-side */
+    align-items: center;
+    justify-content: space-between;
+    border-left: 0.6rem solid; /* Border tebal di kiri, di dalam kartu */
+    border-radius: 0 1.0rem 1.0rem 0; /* Sesuaikan radius agar border kiri terlihat */
+}
+/* Warna border kiri untuk setiap kartu (nth-child) - tebal di dalam */
+.sidebar-prayer .prayer-card:nth-child(1) { border-left-color: #ff0000; } /* Merah */
+.sidebar-prayer .prayer-card:nth-child(2) { border-left-color: #ff7f00; } /* Orange */
+.sidebar-prayer .prayer-card:nth-child(3) { border-left-color: #ffff00; } /* Kuning */
+.sidebar-prayer .prayer-card:nth-child(4) { border-left-color: #00ff00; } /* Hijau */
+.sidebar-prayer .prayer-card:nth-child(5) { border-left-color: #0000ff; } /* Biru */
+.sidebar-prayer .prayer-card:nth-child(6) { border-left-color: #4b0082; } /* Indigo */
+.sidebar-prayer .prayer-card:nth-child(7) { border-left-color: #9400d3; } /* Ungu */
+
+
+.sidebar-prayer .prayer-name {
+    font-size: 3.0rem; /* Increased for larger appearance */
+    font-weight: bold;
+    margin-bottom: 0; /* Removed margin since horizontal */
+}
+
+.sidebar-prayer .prayer-time {
+    font-size: 3.8rem; /* Increased for larger appearance */
+    font-weight: bold;
+    color: #ffd700;
+}
+
+
+.content-main {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(1.0rem);
+    border-radius: 2.0rem;
+    border: 0.2rem solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: margin-right 0.3s ease;
+    position: relative; /* Agar child absolute bisa overlay */
+}
+
+.content-section h2 {
+    font-size: 2.8rem;
+    color: #ffd700;
+    margin-bottom: 2.0rem;
+    text-align: center;
+}
+
+.content-section p {
+    font-size: 1.6rem;
+    line-height: 1.6;
+    text-align: center;
+    opacity: 0.9;
+    flex: 1;
+}
+
+/* Video Section */
+.video-section {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-section video {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    border: 0.4rem solid #ffd700;
+    border-radius: 2.0rem;
+}
+.footer-content {
+    background: linear-gradient(180deg, #0d3025 0%, #1a5c44 100%); 
+    padding: 0;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 5%; /* 5vh; Small fixed height at bottom */
+    overflow: hidden;
+     border-radius: 2.0rem;
+}
+
+.running-text-content {
+    font-size: 2.0rem;
+    color: #ffd700;
+    white-space: nowrap;
+    animation: scroll 30s linear infinite;
+}
+
+/* Footer */
+.footer {
+    background: linear-gradient(180deg, #0d3025 0%, #1a5c44 100%); 
+    padding: 0;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 5%; /* 5vh; Small fixed height at bottom */
+    overflow: hidden;
+}
+
+.running-text {
+    font-size: 2.0rem;
+    color: #ffd700;
+    white-space: nowrap;
+    animation: scroll 30s linear infinite;
+}
+
+@keyframes scroll {
+    0% { transform: translateX(50%); }
+    100% { transform: translateX(-50%); }
+}
+
+@media (max-width: 136.6rem) {
+    #masjidName {
+        white-space: nowrap; /* Mencegah wrap */
+        overflow: hidden; /* Sembunyikan overflow */
+        animation: mesjid 10s linear infinite; /* Animasi berjalan ke kiri */
+    }
+}
+@keyframes mesjid {
+    0% { transform: translateX(100%); /* Mulai dari kanan */
+    }
+    100% {  transform: translateX(-100%); /* Bergerak ke kiri hingga hilang */
+    }
+}
+
+
+/* Admin Panel */
+.admin-toggle {
+    position: fixed;
+    bottom: 1.0rem;
+    right: 1.0rem;
+    background: #ffd700;
+    border: none;
+    color: #0d3025;
+    padding: 1.0rem 1.5rem;
+    border-radius: 5.0rem;
+    cursor: pointer;
+    font-size: 1.4rem;
+    font-weight: bold;
+    box-shadow: 0 0.5rem 2.0rem rgba(255, 215, 0, 0.4);
+    z-index: 500;
+    transition: all 0.3s ease;
+}
+
+.admin-toggle:hover {
+    transform: translateY(-0.3rem);
+    box-shadow: 0 0.8rem 2.5rem rgba(255, 215, 0, 0.6);
+}
+
+.admin-panel {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    color: #333;
+    padding: 4.0rem;
+    border-radius: 2.0rem;
+    box-shadow: 0 1.0rem 5.0rem rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    max-width: 60.0rem;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.admin-panel.active {
+    display: block;
+}
+
+.admin-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1999;
+}
+
+.admin-overlay.active {
+    display: block;
+}
+
+.admin-panel h2 {
+    color: #1a5c44;
+    margin-bottom: 2.5rem;
+}
+
+.form-group {
+    margin-bottom: 2.0rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.8rem;
+    font-weight: bold;
+    color: #555;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 1.2rem;
+    border: 0.2rem solid #ddd;
+    border-radius: 0.8rem;
+    font-size: 1.6rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #1a5c44;
+}
+
+.btn-group {
+    display: flex;
+    gap: 1.0rem;
+    margin-top: 2.5rem;
+}
+
+.btn {
+    flex: 1;
+    padding: 1.4rem;
+    border: none;
+    border-radius: 1.0rem;
+    cursor: pointer;
+    font-size: 1.6rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-save {
+    background: #1a5c44;
+    color: white;
+}
+
+.btn-save:hover {
+    background: #0d3025;
+}
+
+.btn-cancel {
+    background: #ddd;
+    color: #333;
+}
+
+.btn-cancel:hover {
+    background: #ccc;
+}
+
+
+/*
+@media (max-width: 76.8rem) {
+    .top-bar {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .masjid-info h1 {
+        font-size: 3.6rem;
+    }
+
+    .prayer-times {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-section {
+        padding: 2.0rem;
+    }
+
+    .hero-image {
+        height: 30.0rem;
+    }
+
+    .quote-text {
+        font-size: 2.0rem;
+    }
+}
+*/
+/* Wrapper untuk masjid-info agar guliran terbatas di dalamnya */
+
+/* Elemen h1 yang akan bergulir */
+
+
+/* Keyframes untuk animasi gulir horizontal */
+@keyframes marquee {
+    0% { transform: translateY(-50%); } /* Mulai dari kanan */
+    100% { transform: translateY(50%); } /* Bergerak ke kiri */
+}
+@keyframes marquee1 {
+    0% { transform: translateX(-50%); } /* Mulai dari kanan */
+    100% { transform: translateX(50%); } /* Bergerak ke kiri */
+}
+
+/* Styling sederhana untuk switch */
+#scrollSwitch {
+    margin-top: 7.0rem; /* Geser ke bawah agar di bawah h1 (sesuaikan berdasarkan tinggi h1) */
+    padding: 0.5rem 1.0rem;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 0.4rem;
+    position: relative;
+    z-index: 1; /* Di bawah h1 tapi di atas p jika perlu */
+}
+#scrollSwitch.off {
+    background-color: #f44336; /* Warna merah saat off */
+}
+
+/* Container for the toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 3.0rem;
+  height: 1.6rem;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider2 {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider2:before {
+  position: absolute;
+  content: "";
+  height: 1.4rem;
+  width: 1.4rem;
+  left: 0.2rem;
+  bottom: 0;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider2 {
+  background-color: #2196F3;
+}
+
+input:focus + .slider2 {
+  box-shadow: 0 0 0.1rem #2196F3;
+}
+
+input:checked + .slider2:before {
+  -webkit-transform: translateX(1.4rem);
+  -ms-transform: translateX(1.4rem);
+  transform: translateX(1.4rem);
+}
+
+/* Rounded sliders */
+.slider2.round {
+  border-radius: 1.6rem;
+}
+
+.slider2.round:before {
+  border-radius: 50%;
+}
+
+/* ============================================================================================== */
+/* Gaya untuk slideshow PDF */
+/* CSS Lengkap untuk Slideshow PDF (Flipbook Effect) */
+/* Tambahkan ini ke file CSS utama Anda (misalnya style.css) atau inline di HTML */
+
+/* Container untuk slideshow PDF */
+/*.pdf-slideshow {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 60.0rem; 
+    background-color: #f0f0f0; 
+    border-radius: 0.8rem; 
+    box-shadow: 0 0.2rem 1.0rem rgba(0, 0, 0, 0.1); 
+}
+
+/* Setiap halaman PDF 
+.page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /*transition: transform 1s ease-in-out; 
+   /* opacity: 1; /* Pastikan opacity default 
+} */
+
+.pdf-slideshow {
+    position: relative;
+    overflow: hidden;
+    perspective: 120.0rem; /* Kedalaman untuk efek 3D */
+    width: 100%;
+    height: 60.0rem; /* Sesuaikan tinggi */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.page {
+    position: absolute;
+    transform-style: preserve-3d;
+    transform-origin: left center; /* Titik flip dari kiri */
+    transition: transform 0.9s ease-in-out, opacity 0.9s ease-in-out;
+    backface-visibility: hidden;
+    box-shadow: 0 0.4rem 0.8rem rgba(0,0,0,0.3); /* Bayangan untuk efek buku */
+    z-index: 1;
+    opacity: 0; /* Mulai tersembunyi */
+     width: 100%;
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0;
+    border: 0.4rem solid #ffd700;
+    border-radius: 2.0rem;
+}
+
+.page.active {
+    z-index: 10;
+    opacity: 1;
+    transform: rotateY(0deg); /* Normal */
+}
+
+
+.page.flipping-out {
+    transform: rotateY(-100deg) translateZ(-1.0rem); /* Flip keluar ke kiri */
+    opacity: 0;
+}
+
+.page.flipping-in {
+    transform: rotateY(100deg) translateZ(1.0rem); /* Flip masuk dari kanan */
+    opacity: 1;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+.ctrl-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 20px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.2s ease;
+    min-width: 50px;
+}
+
+.ctrl-btn.wide {
+    min-width: 100px;
+    font-size: 16px;
+}
+
+.ctrl-btn:hover {
+    background: rgba(255,255,255,0.28);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+
+.ctrl-btn:active {
+    transform: scale(0.94);
+    background: rgba(255,255,255,0.35);
+}
+
+
+/* Canvas di dalam halaman */
+.page canvas {
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.1); /* Opsional: efek bayangan untuk canvas */
+    border-radius: 0.4rem; /* Opsional: sudut melengkung pada canvas */
+}
+
+
+/* Jika ingin efek flipbook sejati (rotateY seperti buku), gunakan ini sebagai alternatif */
+/* .page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 1s ease-in-out;
+    transform-origin: left center; 
+    transform-style: preserve-3d; 
+} */
+/* .page canvas {
+    backface-visibility: hidden; 
+} */
+
+/* Jika ada pesan error atau kosong */
+.pdf-slideshow p {
+    text-align: center;
+    font-size: 1.8rem;
+    color: #666;
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Responsivitas untuk layar kecil */
+@media (max-width: 76.8rem) {
+    .pdf-slideshow {
+        height: 40.0rem; /* Tinggi lebih kecil di mobile */
+    }
+    .page canvas {
+        max-width: 90%; /* Kurangi lebar di mobile */
+    }
+}
+
+/* Jika ingin navigasi manual (next/prev buttons), tambahkan ini */
+/* .pdf-slideshow .nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 1.0rem 1.5rem;
+    cursor: pointer;
+    font-size: 1.6rem;
+    border-radius: 0.4rem;
+    z-index: 10;
+}
+.pdf-slideshow .nav-button:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+.pdf-slideshow .prev-button {
+    left: 1.0rem;
+}
+.pdf-slideshow .next-button {
+    right: 1.0rem;
+} */
+
+/* CSS untuk overlay indikator tools */
+       .tool-indicator {
+            position: absolute;
+            bottom: 3.5rem;
+            left: 1.0rem;
+            background-color: rgba(0, 0, 0, 0.7); /* Transparan hitam */
+            color: white;
+            padding: 0.5rem 1.0rem;
+            border-radius: 0.5rem;
+            font-size: 1.6rem;
+            font-weight: bold;
+            display: none; /* Sembunyikan default */
+            z-index: 10; /* Di atas video */
+            opacity: 0; /* Mulai transparan */
+            transition: opacity 0.3s ease-in-out; /* Animasi fade */
+        }
+        .tool-indicator.show {
+            opacity: 1; /* Tampil dengan animasi */
+        }
+        /* CSS untuk overlay menu option */
+        .option-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 2.0rem;
+            border-radius: 1.0rem;
+            font-size: 1.8rem;
+            display: none;
+            z-index: 20; /* Di atas indikator */
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .option-menu.show {
+            opacity: 1;
+        }
+        .option-item {
+            margin: 1.0rem 0;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+        .option-item.active {
+            background-color: #007bff;
+        }
+        
+    .fule {
+    position: absolute;
+    bottom: 1.0rem;
+    left: 50%;
+     color: white;
+    transform: translateX(-50%);
+    text-align: center;
+    width: 90%;
+    display: none;
+    background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.2) 100%);
+    backdrop-filter: blur(0.8rem);
+    padding: 1.5rem 2.0rem;
+    border-radius: 1.5rem;
+    opacity: 0; /* Tambahkan ini: Default transparan */
+    transition: opacity 0.3s ease; /* Tambahkan ini: Animasi smooth untuk opacity */
+}
+.fule.show {
+            opacity: 1;
+        }
+        
+        #flipbook {
+    width: 100%;
+    height: auto;
+    max-width: 80.0rem; /* Sesuai dengan width di JS */
+}
+
+.form-group.row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.form-group.row label {
+    width: 100px;
+    font-weight: bold;
+}
+
+.form-group.row input[type="time"] {
+    flex: 1;
+}
+
+.delay-input {
+    width: 90px;
+    padding: 6px;
+}
+
+.date-box {
+    flex-shrink: 1 !important;
+    white-space: nowrap !important;
+    min-width: 0;
+}
+
+/* Clock-box boleh mengecil */
+.clock-box {
+    flex-shrink: 1 !important;
+    min-width: 0;
+    white-space: nowrap !important;   /* tidak wrap */
+}
+
+/* Clock text juga boleh mengecil */
+.clock {
+    flex-shrink: 1 !important;
+    white-space: nowrap !important;
+    min-width: 0;
+}
+
+/* Jam, menit, separator — jangan wrap */
+.clock span {
+    white-space: nowrap !important;
+}
+      
