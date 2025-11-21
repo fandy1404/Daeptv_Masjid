@@ -1,0 +1,19 @@
+workflows:
+  android-tv:
+    name: DaepTV_Masjid Build
+    max_build_duration: 60
+    environment:
+      android: latest
+      vars:
+        JAVA_VERSION: 11
+    scripts:
+      - name: Clean & Build APK
+        script: |
+          chmod +x gradlew
+          ./gradlew clean assembleRelease --stacktrace
+    artifacts:
+      - app/build/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - utthafandhy@gmail.com
