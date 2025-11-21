@@ -1,21 +1,20 @@
 workflows:
   android-tv:
     name: DaepTV_Masjid Build
-    max_build_duration: 90
+    max_build_duration: 60
     environment:
       vars:
         JAVA_VERSION: 11
     scripts:
-      - name: Setup system packages (JDK + Gradle)
+      - name: Set up JDK
         script: |
           sudo apt-get update
-          sudo apt-get install -y openjdk-11-jdk wget unzip zip gradle
+          sudo apt-get install -y openjdk-11-jdk
           export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-          java -version
-          gradle -v
-      - name: Build APK (Release)
+      - name: Build APK
         script: |
-          gradle clean assembleRelease --no-daemon --stacktrace
+          chmod +x gradlew
+          ./gradlew clean assembleRelease --stacktrace
     artifacts:
       - app/build/outputs/**/*.apk
     publishing:
