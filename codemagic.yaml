@@ -3,9 +3,9 @@ workflows:
     name: DaepTV_Masjid Build
     max_build_duration: 60
 
-   environment:
-  android_signing:
-    - keystore: daeptv_keystore.jks
+    environment:
+      android_signing:
+        - keystore: daeptv_keystore.jks
 
     scripts:
       - name: Build signed APK
