@@ -2,22 +2,21 @@ workflows:
   android-tv:
     name: DaepTV_Masjid Build
     max_build_duration: 60
+
     environment:
-      vars:
-        JAVA_VERSION: 11
+      android_signing:
+        keystore: daeptv_keystore.jks
+
     scripts:
-      - name: Set up JDK
-        script: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-11-jdk
-          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-      - name: Build APK
+      - name: Build signed APK
         script: |
           chmod +x gradlew
-          ./gradlew clean assembleRelease --stacktrace
+          ./gradlew clean assembleRelease
+
     artifacts:
       - app/build/outputs/**/*.apk
+
     publishing:
       email:
         recipients:
-          - utthafandhy@gmail.com
+          - cv.dit88@gmail.com
