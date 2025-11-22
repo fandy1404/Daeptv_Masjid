@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 android {
+     namespace 'com.example.daeptv' 
     compileSdkVersion 33
     defaultConfig {
         applicationId "com.example.daeptv"
