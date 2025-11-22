@@ -5,7 +5,7 @@ workflows:
 
     environment:
       android_signing:
-        - keystore: daeptv_keystore.jks
+        - keystore: DaepTV
 
     scripts:
       - name: Build signed APK
