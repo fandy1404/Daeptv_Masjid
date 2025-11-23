@@ -293,18 +293,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 
-    document.getElementById('zoom-in').addEventListener('click', function() {
+    document.getElementById('zoom-in').addEventListener('click', async function () {
         if (zoomLevel < maxZoom) {
             zoomLevel += step;
             applyZoom(zoomLevel);
-            saveZoomToDB();
+            await saveZoomToDB();
         }
     });
-    document.getElementById('zoom-out').addEventListener('click', function() {
+    document.getElementById('zoom-out').addEventListener('click', async function () {
         if (zoomLevel > minZoom) {
             zoomLevel -= step;
             applyZoom(zoomLevel);
-            saveZoomToDB();
+            await saveZoomToDB();
         }
     });
      document.getElementById('fullscreen').addEventListener('click', function () {
