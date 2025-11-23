@@ -21,14 +21,9 @@ android {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
         }
-    }
-
-    signingConfigs {
-        release {
-            // in Codemagic, supply via android_signing in codemagic.yaml
-            // leave blank here; Codemagic injects keystore
+        debug {
+            debuggable true
         }
     }
 
