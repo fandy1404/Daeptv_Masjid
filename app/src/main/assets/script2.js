@@ -553,16 +553,16 @@ settings.audio = settings.audio || null;
     db.run("INSERT OR REPLACE INTO running_text (id, text) VALUES (1, ?)", [settings.runningText]);
     
     // Persist to IndexedDB
-    await saveDatabaseToIndexedDB();
-    
-    // Update display
-    await loadSettings();
-    updatePrayerTimes();
-    
-    // Close admin panel
-    toggleAdmin();
-    
-    alert('✔️ Pengaturan berhasil disimpan!');
+    document.getElementById("simpanadmin").disabled = true;
+
+await saveDatabaseToIndexedDB();  // ⬅ WAJIB tunggu sampai commit
+await loadSettings();             // load ulang dari database
+updatePrayerTimes();
+
+document.getElementById("simpanadmin").disabled = false;
+toggleAdmin();
+alert("✔ Pengaturan berhasil disimpan!");
+
 }
 
 // Fungsi untuk inisialisasi database
