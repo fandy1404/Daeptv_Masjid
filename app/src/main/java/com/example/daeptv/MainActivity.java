@@ -1,65 +1,86 @@
 package com.example.daeptv;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Bundle;
+import android.webkit.ConsoleMessage;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.webkit.WebChromeClient;
-import android.webkit.JavascriptInterface;
 import androidx.appcompat.app.AppCompatActivity;
+import android.view.WindowManager;
 
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
-    private DatabaseHelper dbHelper;
+    private JSBridge jsBridge;
 
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Force hardware acceleration for media
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
+
         webView = new WebView(this);
         setContentView(webView);
 
-        dbHelper = new DatabaseHelper(this);  // Inisialisasi DB untuk akses data media
+        WebSettings s = webView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
+        s.setAllowFileAccess(true);
+        s.setAllowContentAccess(true);
+        s.setAllowUniversalAccessFromFileURLs(true);
+        s.setAllowFileAccessFromFileURLs(true);
+        s.setLoadWithOverviewMode(true);
+        s.setUseWideViewPort(true);
+        s.setMediaPlaybackRequiresUserGesture(false); // allow autoplay
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-        WebSettings ws = webView.getSettings();
-        ws.setJavaScriptEnabled(true);  // Aktifkan JS untuk WASM dan interaksi
-        ws.setDomStorageEnabled(true);  // Untuk penyimpanan lokal
-        ws.setAllowFileAccess(true);    // Izinkan akses file di assets
-        ws.setAllowContentAccess(true);
-        ws.setMediaPlaybackRequiresUserGesture(false);  // Coba izinkan autoplay media
-
-        // WebViewClient: Tangani error pemuatan tanpa crash
-        webView.setWebViewClient(new WebViewClient() {
+        // Prevent console errors from crashing flow (catch noisy messages)
+        webView.setWebChromeClient(new WebChromeClient() {
             @Override
-            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                // Jika error (misalnya, file tidak ada), tampilkan pesan alih-alih crash
-                view.loadData("<html><body><h1>Aplikasi Siap</h1><p>Data media belum ada. Gunakan form admin untuk menambah.</p></body></html>", "text/html", "UTF-8");
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                // swallow console messages to avoid unexpected behavior
+                return true;
             }
         });
 
-        // WebChromeClient: Tangani media (video/audio) tanpa crash
-        webView.setWebChromeClient(new WebChromeClient());
+        jsBridge = new JSBridge(this);
+        webView.addJavascriptInterface(jsBridge, "AndroidBridge");
 
-        // JavaScript Interface: Izinkan HTML/WASM akses DB
-        webView.addJavascriptInterface(new WebAppInterface(), "Android");
-
+        // Load local index (ensure index.html is at app/src/main/assets/index.html)
         webView.loadUrl("file:///android_asset/index.html");
     }
 
-    // Class untuk interface JS
-    public class WebAppInterface {
-        @JavascriptInterface
-        public String getMediaData() {
-            return dbHelper.getAllMediaAsJson();  // Ambil data media sebagai JSON
-        }
-    }
-
-    // Tangani tombol back
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
+        if (webView != null && webView.canGoBack()) webView.goBack();
+        else super.onBackPressed();
+    }
+
+    // Minimal JS bridge to expose Base64 video/audio from SQLite
+    public static class JSBridge {
+        Context ctx;
+        JSBridge(Context c){ ctx = c; }
+
+        @JavascriptInterface
+        public String getVideoBase64() {
+            try {
+                DBHelper db = new DBHelper(ctx);
+                return db.getLatestMediaBase64("video");
+            } catch (Exception e) { return ""; }
+        }
+
+        @JavascriptInterface
+        public String getAudioBase64() {
+            try {
+                DBHelper db = new DBHelper(ctx);
+                return db.getLatestMediaBase64("audio");
+            } catch (Exception e) { return ""; }
         }
     }
 }
