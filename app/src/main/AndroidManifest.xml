@@ -1,6 +1,21 @@
 <manifest package="com.example.daeptv" xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:label="DaepTV_Masjid" android:allowBackup="true" android:icon="@mipmap/ic_launcher">
-        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+    <!-- Izin untuk akses internet (jika WASM atau media online) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Izin untuk kontrol audio (penting untuk autoplay audio/video) -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Izin untuk akses jaringan (opsional, tapi berguna) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:label="DaepTV_Masjid"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:hardwareAccelerated="true">  <!-- Tambahan: Aktifkan akselerasi hardware untuk WebView dan media (video/audio) agar tidak crash -->
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
