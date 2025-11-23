@@ -284,14 +284,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     applyZoom(zoomLevel);
 
-    function saveZoomToDB() {
+  async function saveZoomToDB() {
     try {
         db.run("INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)", [zoomLevel]);
-        saveDatabaseToIndexedDB();
+        await saveDatabaseToIndexedDB(); // tetap background, tapi dijamin selesai
     } catch (e) {
         console.log("SQLite save error:", e);
     }
 }
+
     document.getElementById('zoom-in').addEventListener('click', function() {
         if (zoomLevel < maxZoom) {
             zoomLevel += step;
