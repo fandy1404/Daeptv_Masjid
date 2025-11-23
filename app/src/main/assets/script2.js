@@ -835,32 +835,38 @@ if (tableExists('zoom_settings')) {
 
 
 // Fungsi untuk menyimpan database ke IndexedDB
-function saveDatabaseToIndexedDB() {
-    const data = db.export(); // Uint8Array
-    const blob = new Blob([data], { type: "application/octet-stream" });
+async function saveDatabaseToIndexedDB() {
+    return new Promise((resolve, reject) => {
+        const data = db.export();
+        const blob = new Blob([data], { type: "application/octet-stream" });
 
-    const request = indexedDB.open('PrayerMonitorDB', 1);
+        const request = indexedDB.open('PrayerMonitorDB', 1);
 
-    request.onupgradeneeded = function(event) {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains('sqliteDB')) {
-            db.createObjectStore('sqliteDB');
-        }
-    };
+        request.onupgradeneeded = function(event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('sqliteDB')) {
+                db.createObjectStore('sqliteDB');
+            }
+        };
 
-    request.onsuccess = function(event) {
-        const idb = event.target.result;
-        const tx = idb.transaction(['sqliteDB'], 'readwrite');
-        const store = tx.objectStore('sqliteDB');
-        store.put(blob, 'database'); // <-- simpan blob
-        tx.oncomplete = () => idb.close();
-    };
+        request.onsuccess = function(event) {
+            const idb = event.target.result;
+            const tx = idb.transaction(['sqliteDB'], 'readwrite');
+            const store = tx.objectStore('sqliteDB');
+            store.put(blob, 'database');
 
-    request.onerror = function(event) {
-        console.error('Error saving to IndexedDB:', event.target.error);
-    };
+            tx.oncomplete = () => {
+                idb.close();
+                resolve();  // ⬅ WAJIB agar await bekerja
+            };
+        };
+
+        request.onerror = function(event) {
+            console.error('Error saving to IndexedDB:', event.target.error);
+            reject(event.target.error);  // ⬅ WAJIB agar bisa terdeteksi jika error
+        };
+    });
 }
-
 
 // Fungsi untuk memuat database dari IndexedDB
 function loadDatabaseFromIndexedDB() {
@@ -880,33 +886,45 @@ function loadDatabaseFromIndexedDB() {
             const store = tx.objectStore('sqliteDB');
             const getReq = store.get('database');
 
-            getReq.onsuccess = function(event) {
-                const data = event.target.result;
+            getReq.onsuccess = function() {
+                const result = getReq.result;
 
-                if (!data) {
-                    db = new SQL.Database(); // DB baru
+                if (!result) {
+                    db = new SQL.Database();
                     resolve();
                     idb.close();
                     return;
                 }
 
-                // <-- Convert Blob → Uint8Array
-                data.arrayBuffer().then(buffer => {
-                    db = new SQL.Database(new Uint8Array(buffer));
-                    resolve();
-                    idb.close();
-                });
+                result.arrayBuffer()
+                    .then(buffer => {
+                        db = new SQL.Database(new Uint8Array(buffer));
+                        resolve();
+                        idb.close();
+                    })
+                    .catch(err => {
+                        console.error('SQLite buffer error:', err);
+                        db = new SQL.Database();
+                        resolve();
+                        idb.close();
+                    });
+            };
+
+            getReq.onerror = function(event) {
+                console.error('Error load record:', event.target.error);
+                db = new SQL.Database();
+                resolve();
+                idb.close();
             };
         };
 
         request.onerror = function(event) {
-            console.error('Error opening IndexedDB:', event.target.error);
+            console.error('IndexedDB open error:', event.target.error);
             db = new SQL.Database();
             resolve();
         };
     });
 }
-
 
 //////////////////////////////////
 // Fungsi toggle yang sudah ada, dimodifikasi agar independen (tidak menutup yang lain)
