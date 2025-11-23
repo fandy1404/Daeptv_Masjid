@@ -836,66 +836,69 @@ if (tableExists('zoom_settings')) {
 
 // Fungsi untuk menyimpan database ke IndexedDB
 function saveDatabaseToIndexedDB() {
-    const data = db.export();
+    const data = db.export(); // Uint8Array
+    const blob = new Blob([data], { type: "application/octet-stream" });
+
     const request = indexedDB.open('PrayerMonitorDB', 1);
-    
+
     request.onupgradeneeded = function(event) {
         const db = event.target.result;
         if (!db.objectStoreNames.contains('sqliteDB')) {
             db.createObjectStore('sqliteDB');
         }
     };
-    
+
     request.onsuccess = function(event) {
         const idb = event.target.result;
-        const transaction = idb.transaction(['sqliteDB'], 'readwrite');
-        const store = transaction.objectStore('sqliteDB');
-        store.put(data, 'database');
-        idb.close();
+        const tx = idb.transaction(['sqliteDB'], 'readwrite');
+        const store = tx.objectStore('sqliteDB');
+        store.put(blob, 'database'); // <-- simpan blob
+        tx.oncomplete = () => idb.close();
     };
-    
+
     request.onerror = function(event) {
         console.error('Error saving to IndexedDB:', event.target.error);
     };
 }
 
+
 // Fungsi untuk memuat database dari IndexedDB
 function loadDatabaseFromIndexedDB() {
     return new Promise((resolve) => {
         const request = indexedDB.open('PrayerMonitorDB', 1);
-        
+
         request.onupgradeneeded = function(event) {
             const db = event.target.result;
             if (!db.objectStoreNames.contains('sqliteDB')) {
                 db.createObjectStore('sqliteDB');
             }
         };
-        
+
         request.onsuccess = function(event) {
             const idb = event.target.result;
-            const transaction = idb.transaction(['sqliteDB'], 'readonly');
-            const store = transaction.objectStore('sqliteDB');
-            const getRequest = store.get('database');
-            
-            getRequest.onsuccess = function(event) {
+            const tx = idb.transaction(['sqliteDB'], 'readonly');
+            const store = tx.objectStore('sqliteDB');
+            const getReq = store.get('database');
+
+            getReq.onsuccess = function(event) {
                 const data = event.target.result;
-                if (data) {
-                    db = new SQL.Database(data);
-                } else {
-                    db = new SQL.Database(); 
+
+                if (!data) {
+                    db = new SQL.Database(); // DB baru
+                    resolve();
+                    idb.close();
+                    return;
                 }
-                idb.close();
-                resolve();
-            }; 
-            
-            getRequest.onerror = function(event) {
-                console.error('Error loading from IndexedDB:', event.target.error);
-                db = new SQL.Database();
-                idb.close();
-                resolve();
+
+                // <-- Convert Blob → Uint8Array
+                data.arrayBuffer().then(buffer => {
+                    db = new SQL.Database(new Uint8Array(buffer));
+                    resolve();
+                    idb.close();
+                });
             };
         };
-        
+
         request.onerror = function(event) {
             console.error('Error opening IndexedDB:', event.target.error);
             db = new SQL.Database();
@@ -903,6 +906,7 @@ function loadDatabaseFromIndexedDB() {
         };
     });
 }
+
 
 //////////////////////////////////
 // Fungsi toggle yang sudah ada, dimodifikasi agar independen (tidak menutup yang lain)
