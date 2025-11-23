@@ -207,6 +207,22 @@ function toggleJadwalForm() {
     }
 }
 /* =================================================================== */
+    // Tangani error JS/WASM agar tidak crash aplikasi
+window.onerror = function(msg, url, line) {
+    console.error('Error: ' + msg + ' at ' + url + ':' + line);
+    // Jangan biarkan error menghentikan aplikasi
+    return true;
+};
+
+// Jika ada kode WASM atau akses DB, bungkus dengan try-catch
+try {
+    // Kode Anda untuk WASM, input/update, atau views DB
+    // Misalnya: if (!data) { console.log('Data kosong, aman'); }
+} catch (e) {
+    console.error('WASM/DB Error: ' + e);
+    // Tampilkan pesan tanpa crash
+    document.body.innerHTML = '<p>Aplikasi siap, tapi ada error internal. Cek log.</p>';
+}
 /*document.addEventListener('DOMContentLoaded', function() {
     let zoomLevel = 1;
     const step = 0.1;
