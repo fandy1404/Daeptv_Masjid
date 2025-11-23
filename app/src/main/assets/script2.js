@@ -584,7 +584,7 @@ async function initDatabase() {
             );
         `);
         db.run("INSERT OR IGNORE INTO zoom_settings (id, zoom) VALUES (1, 1)");
-        saveDatabaseToIndexedDB();
+        await saveDatabaseToIndexedDB(); // ⬅ WAJIB di init agar DB tersimpan permanen
         // Jika database kosong atau tabel tidak ada, buat baru
         if (!tableExists('masjid_info')) {
             //db = new SQL.Database();
