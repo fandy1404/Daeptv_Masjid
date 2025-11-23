@@ -208,21 +208,33 @@ function toggleJadwalForm() {
 }
 /* =================================================================== */
     // Tangani error JS/WASM agar tidak crash aplikasi
-window.onerror = function(msg, url, line) {
-    console.error('Error: ' + msg + ' at ' + url + ':' + line);
-    // Jangan biarkan error menghentikan aplikasi
-    return true;
-};
+function tryLoadMedia() {
+  // call AndroidBridge to fetch base64
+  const videoBase64 = (window.AndroidBridge && AndroidBridge.getVideoBase64) ? AndroidBridge.getVideoBase64() : "";
+  const audioBase64 = (window.AndroidBridge && AndroidBridge.getAudioBase64) ? AndroidBridge.getAudioBase64() : "";
 
-// Jika ada kode WASM atau akses DB, bungkus dengan try-catch
-try {
-    // Kode Anda untuk WASM, input/update, atau views DB
-    // Misalnya: if (!data) { console.log('Data kosong, aman'); }
-} catch (e) {
-    console.error('WASM/DB Error: ' + e);
-    // Tampilkan pesan tanpa crash
-    document.body.innerHTML = '<p>Aplikasi siap, tapi ada error internal. Cek log.</p>';
+  if (videoBase64 && videoBase64.length > 100) {
+    const v = document.getElementById('myVideo');
+    v.src = "data:video/mp4;base64," + videoBase64;
+    v.play().catch(e => console.log('video play rejected', e));
+  } else {
+    console.log('no video yet');
+  }
+
+  if (audioBase64 && audioBase64.length > 50) {
+    const a = document.getElementById('myAudio');
+    a.src = "data:audio/mp3;base64," + audioBase64;
+    a.play().catch(e => console.log('audio play rejected', e));
+  } else {
+    console.log('no audio yet');
+  }
 }
+
+// call after DOM ready
+document.addEventListener('DOMContentLoaded', function(){
+  tryLoadMedia();
+});
+
 /*document.addEventListener('DOMContentLoaded', function() {
     let zoomLevel = 1;
     const step = 0.1;
