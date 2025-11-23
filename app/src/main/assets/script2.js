@@ -1462,7 +1462,18 @@ const tools = ['play', 'volume', 'fullscreen', 'option'];
         }
     }
 });
-  
+
+  document.getElementById("simpanadmin").addEventListener("click", async function () {
+    const btn = document.getElementById('simpanadmin');
+    btn.disabled = true;
+    btn.innerText = "Menyimpan...";
+
+    await saveAdminSettings(); // ← tunggu sampai selesai benar-benar tersimpan
+
+    btn.disabled = false;
+    btn.innerText = "Simpan";
+});
+
  // Fungsi untuk eksekusi sub-option
         function executeSubOption(video, subAction) {
             console.log('Eksekusi sub-option:', subAction); // Debugging
