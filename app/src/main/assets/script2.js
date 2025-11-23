@@ -547,7 +547,7 @@ async function saveAdminSettings() {
     db.run("INSERT OR REPLACE INTO running_text (id, text) VALUES (1, ?)", [settings.runningText]);
     
     // Persist to IndexedDB
-    saveDatabaseToIndexedDB();
+    await saveDatabaseToIndexedDB();
     
     // Update display
     await loadSettings();
