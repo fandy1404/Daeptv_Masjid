@@ -529,6 +529,12 @@ async function saveAdminSettings() {
     if (audioFile) {
         settings.audio = new Uint8Array(await audioFile.arrayBuffer());
     }
+    /* ⬇ Tambahkan DISINI — bukan di luar */
+settings.heroImage = settings.heroImage || null;
+settings.videos.quran = settings.videos.quran || null;
+settings.videos.kajian = settings.videos.kajian || null;
+settings.videos.khutbah = settings.videos.khutbah || null;
+settings.audio = settings.audio || null;
     
     settings.iqomahDelays = {
     subuh: parseInt(document.getElementById('delaySubuh').value) || 10,
