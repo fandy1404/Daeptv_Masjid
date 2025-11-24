@@ -16,18 +16,22 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private JSBridge jsBridge;
+    private DBHelper dbHelper;
+    private DatabaseHelper databaseHelper;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); // pakai FrameLayout XML
+        setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webview);
+        dbHelper = new DBHelper(this);           // fallback base64
+        databaseHelper = new DatabaseHelper(this); // metadata / path
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);      // IndexedDB / LocalStorage
+        settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
@@ -38,21 +42,18 @@ public class MainActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-        // WebChromeClient untuk console log JS
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
                 Log.d("WebViewConsole", consoleMessage.message() +
-                        " -- From line: " + consoleMessage.lineNumber());
+                        " -- Line: " + consoleMessage.lineNumber());
                 return true;
             }
         });
 
-        // JS Bridge
-        jsBridge = new JSBridge(this);
+        jsBridge = new JSBridge(this, dbHelper, databaseHelper);
         webView.addJavascriptInterface(jsBridge, "AndroidBridge");
 
-        // Load local index.html
         webView.loadUrl("file:///android_asset/index.html");
     }
 
@@ -65,15 +66,19 @@ public class MainActivity extends AppCompatActivity {
     // JS Bridge class
     public static class JSBridge {
         Context ctx;
+        DBHelper db;
+        DatabaseHelper dbMeta;
 
-        JSBridge(Context c) {
+        JSBridge(Context c, DBHelper dbHelper, DatabaseHelper databaseHelper) {
             ctx = c;
+            db = dbHelper;
+            dbMeta = databaseHelper;
         }
 
+        // ===== Base64 fallback =====
         @JavascriptInterface
         public String getVideoBase64() {
             try {
-                DBHelper db = new DBHelper(ctx);
                 return db.getLatestMediaBase64("video");
             } catch (Exception e) {
                 Log.e("JSBridge", "Error getVideoBase64", e);
@@ -84,11 +89,48 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public String getAudioBase64() {
             try {
-                DBHelper db = new DBHelper(ctx);
                 return db.getLatestMediaBase64("audio");
             } catch (Exception e) {
                 Log.e("JSBridge", "Error getAudioBase64", e);
                 return "";
+            }
+        }
+
+        @JavascriptInterface
+        public void saveVideoBase64(String base64) {
+            try {
+                db.saveMedia("video", base64);
+            } catch (Exception e) {
+                Log.e("JSBridge", "Error saveVideoBase64", e);
+            }
+        }
+
+        @JavascriptInterface
+        public void saveAudioBase64(String base64) {
+            try {
+                db.saveMedia("audio", base64);
+            } catch (Exception e) {
+                Log.e("JSBridge", "Error saveAudioBase64", e);
+            }
+        }
+
+        // ===== Metadata / file path =====
+        @JavascriptInterface
+        public void addMedia(String type, String path, String name) {
+            try {
+                dbMeta.addMedia(type, path, name);
+            } catch (Exception e) {
+                Log.e("JSBridge", "Error addMedia", e);
+            }
+        }
+
+        @JavascriptInterface
+        public String getAllMediaJson() {
+            try {
+                return dbMeta.getAllMediaAsJson();
+            } catch (Exception e) {
+                Log.e("JSBridge", "Error getAllMediaJson", e);
+                return "[]";
             }
         }
     }
