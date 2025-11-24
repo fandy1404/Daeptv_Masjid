@@ -36,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
         s.setAllowFileAccessFromFileURLs(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
+s.setDatabasePath(getApplicationContext().getDir("databases", Context.MODE_PRIVATE).getPath());
+// ⬆ kode ini penting untuk Android < 9 (untuk menyimpan data WebSQL/IndexedDB)
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage msg) {
