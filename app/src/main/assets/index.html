@@ -62,6 +62,33 @@
     
   </ul>
 </div>
+    <script>
+/* ⬇⬇ LETAKKAN DI SINI — paling atas */
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function setBlobToElement(id, data, mime = "") {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const blob = new Blob([data], { type: mime || "application/octet-stream" });
+    el.src = URL.createObjectURL(blob);
+}
+
+/* ⬇ setelah itu fungsi-fungsi database */
+async function loadSettings() {
+    // ...
+}
+
+/* ⬇ lalu init dan window.onload */
+window.onload = async function () {
+    await initDatabase();
+    await loadSettings();
+    // ...
+};
+</script>
+
  <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
   <script src="jquery-3.6.0.min.js"></script>
  <!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script> 
