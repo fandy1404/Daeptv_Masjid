@@ -277,63 +277,71 @@ document.addEventListener('DOMContentLoaded', function(){
 }); */
 document.addEventListener('DOMContentLoaded', function() {
 
-    let zoomLevel = settings.zoomLevel || 1;
-    const step = 0.1;
-    const minZoom = 0.5;
-    const maxZoom = 2;
+   // 🔹 Dibaca dari database saat init — fallback ke 1 jika tidak ada data
+let zoomLevel = settings.zoomLevel ?? 1;
+const step = 0.1;
+const minZoom = 0.5;
+const maxZoom = 2;
 
-    applyZoom(zoomLevel);
+// Terapkan zoom pertama kali
+applyZoom(zoomLevel);
 
-  async function saveZoomToDB() {
+// 🔥 Simpan zoom ke SQLite + update settings in-memory
+async function saveZoomToDB() {
     try {
-        db.run("INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)", [zoomLevel]);
-        await saveDatabaseToIndexedDB(); // tetap background, tapi dijamin selesai
-        alert("Zoom berhasil disimpan database");
+        db.run(
+            "INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)",
+            [zoomLevel]
+        );
+
+        // ⬅ simpan juga ke settings untuk mencegah tampilan kembali default sebelum reload
+        settings.zoomLevel = zoomLevel; 
+
+        await saveDatabaseToIndexedDB();
+        console.log("Zoom tersimpan:", zoomLevel);
     } catch (e) {
-        alert("Zoom Gagal disimpan database");
-        console.log("SQLite save error:", e);
+        console.error("Gagal menyimpan zoom:", e);
     }
 }
 
-    document.getElementById('zoom-in').addEventListener('click', async function () {
-        if (zoomLevel < maxZoom) {
-            zoomLevel += step;
-            applyZoom(zoomLevel);
-            await saveZoomToDB();
-        }
-    });
-    document.getElementById('zoom-out').addEventListener('click', async function () {
-        if (zoomLevel > minZoom) {
-            zoomLevel -= step;
-            applyZoom(zoomLevel);
-            await saveZoomToDB();
-        }
-    });
-     document.getElementById('fullscreen').addEventListener('click', function () {
-    if (!document.fullscreenElement &&        // browser modern
-        !document.webkitFullscreenElement &&  // Safari
-        !document.msFullscreenElement) {      // IE/Edge
-        const docEl = document.documentElement;
-        if (docEl.requestFullscreen) {
-            docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) {
-            docEl.webkitRequestFullscreen();
-        } else if (docEl.msRequestFullscreen) {
-            docEl.msRequestFullscreen();
-        }
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
+// 🔹 Event tombol zoom in
+document.getElementById('zoom-in').addEventListener('click', async function () {
+    if (zoomLevel < maxZoom) {
+        zoomLevel = Math.min(maxZoom, zoomLevel + step);
+        applyZoom(zoomLevel);
+        await saveZoomToDB();
     }
-    });
-    document.getElementById('refresh').addEventListener('click', function () {
-        location.reload(); // reload halaman
-    });
+});
+
+// 🔹 Event tombol zoom out
+document.getElementById('zoom-out').addEventListener('click', async function () {
+    if (zoomLevel > minZoom) {
+        zoomLevel = Math.max(minZoom, zoomLevel - step);
+        applyZoom(zoomLevel);
+        await saveZoomToDB();
+    }
+});
+
+// 🔹 Fullscreen
+document.getElementById('fullscreen').addEventListener('click', function () {
+    if (!document.fullscreenElement &&
+        !document.webkitFullscreenElement &&
+        !document.msFullscreenElement
+    ) {
+        const docEl = document.documentElement;
+        (docEl.requestFullscreen ||
+         docEl.webkitRequestFullscreen ||
+         docEl.msRequestFullscreen).call(docEl);
+    } else {
+        (document.exitFullscreen ||
+         document.webkitExitFullscreen ||
+         document.msExitFullscreen).call(document);
+    }
+});
+
+// 🔹 Refresh
+document.getElementById('refresh')
+    .addEventListener('click', () => location.reload());
 
 });
 
