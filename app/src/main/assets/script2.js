@@ -490,79 +490,92 @@ async function showContent(contentId) {
 
 
 async function saveAdminSettings() {
-    // Get values from form
-    settings.masjidName = document.getElementById('adminMasjidName').value;
-    settings.masjidAddress = document.getElementById('adminMasjidAddress').value;
-    settings.prayerTimes.subuh = document.getElementById('adminSubuh').value;
-    settings.prayerTimes.syuruq = document.getElementById('adminSyuruq').value;
-    settings.prayerTimes.imsak = document.getElementById('adminImsak').value;
-    settings.prayerTimes.dzuhur = document.getElementById('adminDzuhur').value;
-    settings.prayerTimes.ashar = document.getElementById('adminAshar').value;
-    settings.prayerTimes.maghrib = document.getElementById('adminMaghrib').value;
-    settings.prayerTimes.isya = document.getElementById('adminIsya').value;
-    settings.quote.text = '"' + document.getElementById('adminQuoteText').value + '"';
-    settings.quote.source = document.getElementById('adminQuoteSource').value;
-    settings.runningText = document.getElementById('adminRunningText').value;
-    
-    // Handle file uploads
-    const heroImageFile = document.getElementById('adminHeroImage').files[0];
-    if (heroImageFile) {
-        settings.heroImage = new Uint8Array(await heroImageFile.arrayBuffer());
-    }
-    
-    const videoQuranFile = document.getElementById('adminVideoQuran').files[0];
-    if (videoQuranFile) {
-        settings.videos.quran = new Uint8Array(await videoQuranFile.arrayBuffer());
-    }
-    
-    const videoKajianFile = document.getElementById('adminVideoKajian').files[0];
-    if (videoKajianFile) {
-        settings.videos.kajian = new Uint8Array(await videoKajianFile.arrayBuffer());
-    }
-    
-    const videoKhutbahFile = document.getElementById('adminVideoKhutbah').files[0];
-    if (videoKhutbahFile) {
-        settings.videos.khutbah = new Uint8Array(await videoKhutbahFile.arrayBuffer());
-    }
-    
-    const audioFile = document.getElementById('adminAudio').files[0];
-    if (audioFile) {
-        settings.audio = new Uint8Array(await audioFile.arrayBuffer());
-    }
-    /* ⬇ Tambahkan DISINI — bukan di luar */
-settings.heroImage = settings.heroImage || null;
-settings.videos.quran = settings.videos.quran || null;
-settings.videos.kajian = settings.videos.kajian || null;
-settings.videos.khutbah = settings.videos.khutbah || null;
-settings.audio = settings.audio || null;
-    
-    settings.iqomahDelays = {
-    subuh: parseInt(document.getElementById('delaySubuh').value) || 10,
-    dzuhur: parseInt(document.getElementById('delayDzuhur').value) || 1,
-    ashar: parseInt(document.getElementById('delayAshar').value) || 10,
-    maghrib: parseInt(document.getElementById('delayMaghrib').value) || 5,
-    isya: parseInt(document.getElementById('delayIsya').value) || 2
-};
+    try {
+        const btnSave = document.getElementById("simpanadmin");
+        btnSave.disabled = true;
 
-    // Simpan ke database
-    db.run("INSERT OR REPLACE INTO masjid_info (id, name, address) VALUES (1, ?, ?)", [settings.masjidName, settings.masjidAddress]);
-     db.run("INSERT OR REPLACE INTO prayer_times (id, subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq) VALUES (1, ?, ?, ?, ?, ?, ?, ?)", [settings.prayerTimes.subuh, settings.prayerTimes.dzuhur, settings.prayerTimes.ashar, settings.prayerTimes.maghrib, settings.prayerTimes.isya, settings.prayerTimes.imsak, settings.prayerTimes.syuruq]);
-    db.run("INSERT OR REPLACE INTO iqomah_delays (id, subuh, dzuhur, ashar, maghrib, isya) VALUES (1, ?, ?, ?, ?, ?)", [settings.iqomahDelays.subuh, settings.iqomahDelays.dzuhur, settings.iqomahDelays.ashar, settings.iqomahDelays.maghrib, settings.iqomahDelays.isya]);
-    db.run("INSERT OR REPLACE INTO quote (id, text, source) VALUES (1, ?, ?)", [settings.quote.text, settings.quote.source]);
-    db.run("INSERT OR REPLACE INTO media (id, hero_image, video_quran, video_kajian, video_khutbah, audio_azan) VALUES (1, ?, ?, ?, ?, ?)", [settings.heroImage, settings.videos.quran, settings.videos.kajian, settings.videos.khutbah, settings.audio]);
-    db.run("INSERT OR REPLACE INTO running_text (id, text) VALUES (1, ?)", [settings.runningText]);
-    
-    // Persist to IndexedDB
-    document.getElementById("simpanadmin").disabled = true;
+        // Ambil values form
+        settings.masjidName = document.getElementById('adminMasjidName').value;
+        settings.masjidAddress = document.getElementById('adminMasjidAddress').value;
 
-await saveDatabaseToIndexedDB();  // ⬅ WAJIB tunggu sampai commit
-await loadSettings();             // load ulang dari database
-updatePrayerTimes();
+        settings.prayerTimes = {
+            subuh: document.getElementById('adminSubuh').value,
+            dzuhur: document.getElementById('adminDzuhur').value,
+            ashar: document.getElementById('adminAshar').value,
+            maghrib: document.getElementById('adminMaghrib').value,
+            isya: document.getElementById('adminIsya').value,
+            imsak: document.getElementById('adminImsak').value,
+            syuruq: document.getElementById('adminSyuruq').value
+        };
 
-document.getElementById("simpanadmin").disabled = false;
-toggleAdmin();
-alert("✔ Pengaturan berhasil disimpan!");
+        settings.quote = {
+            text: document.getElementById('adminQuoteText').value,
+            source: document.getElementById('adminQuoteSource').value
+        };
 
+        settings.runningText = document.getElementById('adminRunningText').value;
+
+        settings.iqomahDelays = {
+            subuh: parseInt(document.getElementById('delaySubuh').value) || 10,
+            dzuhur: parseInt(document.getElementById('delayDzuhur').value) || 1,
+            ashar: parseInt(document.getElementById('delayAshar').value) || 10,
+            maghrib: parseInt(document.getElementById('delayMaghrib').value) || 5,
+            isya: parseInt(document.getElementById('delayIsya').value) || 2
+        };
+
+        // Helper untuk kirim file ke AndroidBridge jika ada
+        async function sendFile(fileInputId, saveFuncName) {
+            const file = document.getElementById(fileInputId).files[0];
+            if (!file) return; // file kosong → skip
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                if (window.AndroidBridge && typeof window.AndroidBridge[saveFuncName] === "function") {
+                    window.AndroidBridge[saveFuncName](base64);
+                }
+            } catch (e) {
+                console.error(`Upload failed ${fileInputId}:`, e);
+            }
+        }
+
+        // Kirim file yang ada
+        await sendFile('adminHeroImage', 'saveVideoBase64');
+        await sendFile('adminVideoQuran', 'saveVideoBase64');
+        await sendFile('adminVideoKajian', 'saveVideoBase64');
+        await sendFile('adminVideoKhutbah', 'saveVideoBase64');
+        await sendFile('adminAudio', 'saveAudioBase64');
+
+        // Kirim metadata ke AndroidBridge jika tersedia
+        if (window.AndroidBridge) {
+            if (typeof window.AndroidBridge.addMedia === "function") {
+                window.AndroidBridge.addMedia("hero", "hero_image_path", "Hero Image");
+            }
+            if (typeof window.AndroidBridge.getAllMediaJson === "function") {
+                const mediaJson = window.AndroidBridge.getAllMediaJson();
+                console.log("Media JSON from AndroidBridge:", mediaJson);
+            }
+        }
+
+        // Simpan ke IndexedDB jika tersedia
+        try {
+            await saveDatabaseToIndexedDB();
+        } catch (e) {
+            console.warn("IndexedDB save failed, fallback ke AndroidBridge", e);
+        }
+
+        // Reload / update UI
+        await loadSettings();
+        updatePrayerTimes();
+
+        btnSave.disabled = false;
+        toggleAdmin();
+        alert("✔ Pengaturan berhasil disimpan!");
+
+    } catch (err) {
+        console.error("Error saveAdminSettings:", err);
+        alert("❌ Terjadi kesalahan saat menyimpan pengaturan.");
+        document.getElementById("simpanadmin").disabled = false;
+    }
 }
 
 // Fungsi untuk inisialisasi database
