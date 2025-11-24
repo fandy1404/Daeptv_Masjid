@@ -585,136 +585,59 @@ async function saveAdminSettings() {
 
 // Fungsi untuk inisialisasi database
 async function initDatabase() {
-    try {
-        // Load sql.js
-        const sqlPromise = initSqlJs({
-            //locateFile: file => `https://sql.js.org/dist/${file}`
-            //locateFile: file => `assets/${file}`
-            locateFile: file => file
-        });
-        SQL = await sqlPromise;
-        
-        // Load dari IndexedDB untuk persistensi
-        await loadDatabaseFromIndexedDB();
-         if (!db) {
-            db = new SQL.Database();
-        }
-
-        // 3. Tambahkan tabel zoom_settings — SELALU di luar IF
-        db.run(`
-            CREATE TABLE IF NOT EXISTS zoom_settings (
-                id INTEGER PRIMARY KEY,
-                zoom REAL
-            );
-        `);
-        db.run("INSERT OR IGNORE INTO zoom_settings (id, zoom) VALUES (1, 1)");
-        await saveDatabaseToIndexedDB(); // ⬅ WAJIB di init agar DB tersimpan permanen
-        // Jika database kosong atau tabel tidak ada, buat baru
-        if (!tableExists('masjid_info')) {
-            //db = new SQL.Database();
-            // Buat tabel-tabel
-            db.run(`
-                CREATE TABLE IF NOT EXISTS masjid_info (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT,
-                    address TEXT
-                );
-            `);
-            db.run(`
-                CREATE TABLE IF NOT EXISTS prayer_times (
-                    id INTEGER PRIMARY KEY,
-                    subuh TEXT,
-                    dzuhur TEXT,
-                    ashar TEXT,
-                    maghrib TEXT,
-                    isya TEXT,
-                    imsak TEXT,
-                    syuruq TEXT
-                );
-            `);
-            db.run(`
-                CREATE TABLE IF NOT EXISTS iqomah_delays (
-                    id INTEGER PRIMARY KEY,
-                    subuh INTEGER,
-                    dzuhur INTEGER,
-                    ashar INTEGER,
-                    maghrib INTEGER,
-                    isya INTEGER
-                );
-            `);
-            db.run(`
-                CREATE TABLE IF NOT EXISTS quote (
-                    id INTEGER PRIMARY KEY,
-                    text TEXT,
-                    source TEXT
-                );
-            `);
-            db.run(`
-                CREATE TABLE IF NOT EXISTS media (
-                    id INTEGER PRIMARY KEY,
-                    hero_image BLOB,
-                    video_quran BLOB,
-                    video_kajian BLOB,
-                    video_khutbah BLOB,
-                    audio_azan BLOB
-                );
-            `);
-            db.run(`
-                CREATE TABLE IF NOT EXISTS running_text (
-                    id INTEGER PRIMARY KEY,
-                    text TEXT
-                );
-            `);
-            db.run(`
-                CREATE TABLE IF NOT EXISTS ayat_pdf (
-                    id INTEGER PRIMARY KEY,
-                    pdf_data BLOB
-                );
-            `);
-             db.run(`
-                CREATE TABLE IF NOT EXISTS kas_pdf (
-                    id INTEGER PRIMARY KEY,
-                    pdf_data BLOB
-                );
-            `);
-            db.run(`
-                CREATE TABLE IF NOT EXISTS jadwal_pdf (
-                    id INTEGER PRIMARY KEY,
-                    pdf_data BLOB
-                );
-            `);
-            
-
-            // Insert defaults
-            db.run("INSERT INTO masjid_info (id, name, address) VALUES (1, ?, ?)", [defaultSettings.masjidName, defaultSettings.masjidAddress]);
-            db.run("INSERT INTO prayer_times (id, subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq) VALUES (1, ?, ?, ?, ?, ?, ?, ?)", [defaultSettings.prayerTimes.subuh, defaultSettings.prayerTimes.dzuhur, defaultSettings.prayerTimes.ashar, defaultSettings.prayerTimes.maghrib, defaultSettings.prayerTimes.isya, defaultSettings.prayerTimes.imsak, defaultSettings.prayerTimes.syuruq]);
-            db.run("INSERT INTO iqomah_delays (id, subuh, dzuhur, ashar, maghrib, isya) VALUES (1, ?, ?, ?, ?, ?)", [defaultSettings.iqomahDelays.subuh, defaultSettings.iqomahDelays.dzuhur, defaultSettings.iqomahDelays.ashar, defaultSettings.iqomahDelays.maghrib, defaultSettings.iqomahDelays.isya]);
-            db.run("INSERT INTO quote (id, text, source) VALUES (1, ?, ?)", [defaultSettings.quote.text, defaultSettings.quote.source]);
-            db.run("INSERT INTO media (id, hero_image, video_quran, video_kajian, video_khutbah, audio_azan) VALUES (1, ?, ?, ?, ?, ?)", [defaultSettings.heroImage, defaultSettings.videos.quran, defaultSettings.videos.kajian, defaultSettings.videos.khutbah, defaultSettings.audio]);
-            db.run("INSERT INTO running_text (id, text) VALUES (1, ?)", [defaultSettings.runningText]);
-
-        }
-        
-        // Load settings ke memory SETELAH tabel dibuat
-        await loadSettings();
+    return new Promise(async (resolve) => {
         try {
-                const z = db.exec("SELECT zoom FROM zoom_settings WHERE id = 1");
-                if (z && z.length && z[0].values.length) {
-                    applyZoom(z[0].values[0][0]);
-                }
-            } catch (e) {
-                console.log("Zoom read error:", e);
+            await loadDatabaseFromIndexedDB(); // ⬅ load SQLite dari IndexedDB dulu, baru cek tabel
+
+            console.log("Database loaded, checking migration...");
+
+            // Buat tabel settings jika belum ada
+            db.run(`
+                CREATE TABLE IF NOT EXISTS settings (
+                    id INTEGER PRIMARY KEY,
+                    mosque_name TEXT DEFAULT '',
+                    hero_image TEXT DEFAULT NULL,
+                    video_quran TEXT DEFAULT NULL,
+                    video_kajian TEXT DEFAULT NULL,
+                    last_update INTEGER DEFAULT 0
+                );
+            `);
+
+            // Jika user pertama kali (belum ada row)
+            const check = db.exec("SELECT COUNT(*) AS total FROM settings");
+            if (check[0].values[0][0] === 0) {
+                db.run(`
+                    INSERT INTO settings (id, mosque_name, hero_image, video_quran, video_kajian, last_update)
+                    VALUES (1, '', NULL, NULL, NULL, strftime('%s','now'));
+                `);
+                console.log("⚡ DB initialized first time — row inserted");
+                await saveDatabaseToIndexedDB();
+                resolve();
+                return;
             }
 
-        //applyZoom(settings.zoomLevel);
+            // Jika user lama — lakukan migrasi kolom
+            const tableInfo = db.exec("PRAGMA table_info(settings)");
+            const cols = tableInfo[0].values.map(c => c[1]);
 
-        console.log('Database initialized successfully');
-    } catch (error) {
-        console.error('Error initializing database:', error);
-        // Fallback ke defaults jika gagal
-        settings = { ...defaultSettings };
-    }
+            if (!cols.includes("hero_image")) db.run(`ALTER TABLE settings ADD COLUMN hero_image TEXT DEFAULT NULL`);
+            if (!cols.includes("video_quran")) db.run(`ALTER TABLE settings ADD COLUMN video_quran TEXT DEFAULT NULL`);
+            if (!cols.includes("video_kajian")) db.run(`ALTER TABLE settings ADD COLUMN video_kajian TEXT DEFAULT NULL`);
+            if (!cols.includes("last_update")) db.run(`ALTER TABLE settings ADD COLUMN last_update INTEGER DEFAULT 0`);
+
+            console.log("⚡ Migration check done — no data removed");
+
+            // Simpan setelah migrasi
+            await saveDatabaseToIndexedDB();
+
+            resolve();
+        } catch (e) {
+            console.error("❌ initDatabase error:", e);
+            resolve();
+        }
+    });
 }
+
 
 function applyZoom(level) {
     document.documentElement.style.fontSize = `${16 * level}px`;
@@ -910,63 +833,65 @@ async function saveDatabaseToIndexedDB() {
 }
 
 // Fungsi untuk memuat database dari IndexedDB
-function loadDatabaseFromIndexedDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open("PrayerMonitorDB", 1);
+async function loadDatabaseFromIndexedDB() {
+    return new Promise((resolve) => {
+        const request = indexedDB.open('PrayerMonitorDB', 1);
 
-        request.onupgradeneeded = function (event) {
-            const idb = event.target.result;
-            if (!idb.objectStoreNames.contains("sqliteDB")) {
-                idb.createObjectStore("sqliteDB");
+        request.onupgradeneeded = function(event) {
+            const dbx = event.target.result;
+            if (!dbx.objectStoreNames.contains('sqliteDB')) {
+                dbx.createObjectStore('sqliteDB');
             }
         };
 
-        request.onsuccess = function (event) {
+        request.onsuccess = function(event) {
             const idb = event.target.result;
-            const tx = idb.transaction(["sqliteDB"], "readonly");
-            const store = tx.objectStore("sqliteDB");
+            const tx = idb.transaction(['sqliteDB'], 'readonly');
+            const store = tx.objectStore('sqliteDB');
+            const getReq = store.get('database');
 
-            const getReq = store.get("database");
+            getReq.onsuccess = async function() {
+                const result = getReq.result;
 
-            getReq.onsuccess = async function () {
-                try {
-                    const stored = getReq.result;
-
-                    // pertama kali dijalankan → belum ada database
-                    if (!stored) {
-                        window.db = new SQL.Database();
-                        idb.close();
-                        return resolve();
-                    }
-
-                    // convert to SQLite
-                    const buffer = stored instanceof ArrayBuffer
-                        ? stored
-                        : stored.buffer || stored;  // fallback
-
-                    window.db = new SQL.Database(new Uint8Array(buffer));
-
+                if (!result) {
+                    // ⬅ DB pertama kali dibuat
+                    db = new SQL.Database();
+                    await initDatabase(); // buat tabel + insert row default
+                    await saveDatabaseToIndexedDB();
                     idb.close();
                     resolve();
-                } catch (err) {
-                    console.error("Load buffer SQLite error:", err);
-                    window.db = new SQL.Database();
-                    idb.close();
-                    resolve();
+                    return;
                 }
+
+                // ⬅ DB sudah ada → load buffer
+                result.arrayBuffer()
+                    .then(async buffer => {
+                        db = new SQL.Database(new Uint8Array(buffer));
+                        await initDatabase(); // cek migrasi
+                        idb.close();
+                        resolve();
+                    })
+                    .catch(async err => {
+                        console.error('SQLite buffer error:', err);
+                        db = new SQL.Database(); // fallback DB baru
+                        await initDatabase();
+                        await saveDatabaseToIndexedDB();
+                        idb.close();
+                        resolve();
+                    });
             };
 
-            getReq.onerror = function (event) {
-                console.error("IndexedDB read error:", event.target.error);
-                window.db = new SQL.Database();
+            getReq.onerror = function(event) {
+                console.error('Error load record:', event.target.error);
+                db = new SQL.Database();
                 idb.close();
                 resolve();
             };
         };
 
-        request.onerror = function (event) {
-            console.error("IndexedDB open error:", event.target.error);
-            window.db = new SQL.Database();
+        request.onerror = function(event) {
+            console.error('IndexedDB open error:', event.target.error);
+            db = new SQL.Database();
             resolve();
         };
     });
