@@ -666,130 +666,108 @@ function tableExists(tableName) {
 // Fungsi loadSettings dengan pengecekan tabel
 async function loadSettings() {
     try {
-        // Load Zoom Level
-if (tableExists('zoom_settings')) {
-    const zoomData = db.exec("SELECT zoom FROM zoom_settings WHERE id = 1")[0];
-    if (zoomData) {
-        settings.zoomLevel = zoomData.values[0][0];
-        applyZoom(settings.zoomLevel);
-    }
-}
+        // ======================= 📌 LOAD ZOOM =======================
+        if (tableExists('zoom_settings')) {
+            const zoomQuery = db.exec("SELECT zoom FROM zoom_settings WHERE id = 1");
+            if (zoomQuery.length && zoomQuery[0].values.length) {
+                settings.zoomLevel = zoomQuery[0].values[0][0] ?? 1;
+                applyZoom(settings.zoomLevel);
+            }
+        }
 
-        // Masjid Info
+        // ======================= 📌 MASJID INFO ======================
         if (tableExists('masjid_info')) {
-            const masjidInfo = db.exec("SELECT * FROM masjid_info WHERE id = 1")[0];
-            if (masjidInfo) {
-                settings.masjidName = masjidInfo.values[0][1];
-                settings.masjidAddress = masjidInfo.values[0][2];
-                document.getElementById('masjidName').textContent = settings.masjidName;
-                document.getElementById('masjidAddress').textContent = settings.masjidAddress;
+            const q = db.exec("SELECT name, address FROM masjid_info WHERE id = 1");
+            if (q.length && q[0].values.length) {
+                settings.masjidName = q[0].values[0][0];
+                settings.masjidAddress = q[0].values[0][1];
+                setText("masjidName", settings.masjidName);
+                setText("masjidAddress", settings.masjidAddress);
             }
         }
-        
-        // Prayer Times
+
+        // ======================= 📌 PRAYER TIMES ======================
         if (tableExists('prayer_times')) {
-            const prayerTimes = db.exec("SELECT * FROM prayer_times WHERE id = 1")[0];
-            if (prayerTimes) {
-                const times = prayerTimes.values[0];
-                settings.prayerTimes.subuh = times[1];
-                settings.prayerTimes.dzuhur = times[2];
-                settings.prayerTimes.ashar = times[3];
-                settings.prayerTimes.maghrib = times[4];
-                settings.prayerTimes.isya = times[5];
-                settings.prayerTimes.imsak = times[6];
-                settings.prayerTimes.syuruq = times[7];
+            const p = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq FROM prayer_times WHERE id = 1");
+            if (p.length && p[0].values.length) {
+                const t = p[0].values[0];
+                settings.prayerTimes = {
+                    subuh: t[0], dzuhur: t[1], ashar: t[2],
+                    maghrib: t[3], isya: t[4], imsak: t[5], syuruq: t[6]
+                };
             }
         }
-        
-        // Iqomah Delays
+
+        // ======================= 📌 IQOMAH DELAY ======================
         if (tableExists('iqomah_delays')) {
-            const iqomahDelays = db.exec("SELECT * FROM iqomah_delays WHERE id = 1")[0];
-            if (iqomahDelays) {
-                const delays = iqomahDelays.values[0];
-                settings.iqomahDelays.subuh = delays[1];
-                settings.iqomahDelays.dzuhur = delays[2];
-                settings.iqomahDelays.ashar = delays[3];
-                settings.iqomahDelays.maghrib = delays[4];
-                settings.iqomahDelays.isya = delays[5];
+            const d = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya FROM iqomah_delays WHERE id = 1");
+            if (d.length && d[0].values.length) {
+                const x = d[0].values[0];
+                settings.iqomahDelays = {
+                    subuh: x[0], dzuhur: x[1], ashar: x[2],
+                    maghrib: x[3], isya: x[4]
+                };
             }
         }
-        
-        // Quote
+
+        // ======================= 📌 QUOTE ======================
         if (tableExists('quote')) {
-            const quote = db.exec("SELECT * FROM quote WHERE id = 1")[0];
-            if (quote) {
-                settings.quote.text = quote.values[0][1];
-                settings.quote.source = quote.values[0][2];
-                document.getElementById('quoteText').textContent = settings.quote.text;
-                document.getElementById('quoteSource').textContent = settings.quote.source;
+            const c = db.exec("SELECT text, source FROM quote WHERE id = 1");
+            if (c.length && c[0].values.length) {
+                settings.quote.text = c[0].values[0][0];
+                settings.quote.source = c[0].values[0][1];
+                setText("quoteText", settings.quote.text);
+                setText("quoteSource", settings.quote.source);
             }
         }
-        
-        // Media
+
+        // ======================= 📌 MEDIA ======================
         if (tableExists('media')) {
-            const media = db.exec("SELECT * FROM media WHERE id = 1")[0];
-            if (media) {
-                const mediaValues = media.values[0];
-                if (mediaValues[1]) {
-                    settings.heroImage = mediaValues[1];
-                    const blob = new Blob([mediaValues[1]], { type: 'image/jpeg' });
-                    document.getElementById('heroImage').src = URL.createObjectURL(blob);
-                }
-                if (mediaValues[2]) {
-                    settings.videos.quran = mediaValues[2];
-                    const blob = new Blob([mediaValues[2]], { type: 'video/mp4' });
-                    document.getElementById('videoQuran').src = URL.createObjectURL(blob);
-                }
-                if (mediaValues[3]) {
-                    settings.videos.kajian = mediaValues[3];
-                    const blob = new Blob([mediaValues[3]], { type: 'video/mp4' });
-                    document.getElementById('videoKajian').src = URL.createObjectURL(blob);
-                }
-                if (mediaValues[4]) {
-                    settings.videos.khutbah = mediaValues[4];
-                    const blob = new Blob([mediaValues[4]], { type: 'video/mp4' });
-                    document.getElementById('videoKhutbah').src = URL.createObjectURL(blob);
-                }
-                if (mediaValues[5]) {
-                    settings.audio = mediaValues[5];
-                }
+            const m = db.exec("SELECT hero_image, video_quran, video_kajian, video_khutbah, audio_azan FROM media WHERE id = 1");
+            if (m.length && m[0].values.length) {
+                const r = m[0].values[0];
+
+                // Gambar
+                if (r[0]) setBlobToElement("heroImage", r[0]);
+
+                // Video
+                if (r[1]) setBlobToElement("videoQuran", r[1], "video/mp4");
+                if (r[2]) setBlobToElement("videoKajian", r[2], "video/mp4");
+                if (r[3]) setBlobToElement("videoKhutbah", r[3], "video/mp4");
+
+                // Audio
+                if (r[4]) settings.audio = r[4];
             }
         }
-        
-        // Running Text
+
+        // ======================= 📌 RUNNING TEXT ======================
         if (tableExists('running_text')) {
-            const runningText = db.exec("SELECT * FROM running_text WHERE id = 1")[0];
-            if (runningText) {
-                settings.runningText = runningText.values[0][1];
-                document.getElementById('runningText').textContent = settings.runningText;
+            const rt = db.exec("SELECT text FROM running_text WHERE id = 1");
+            if (rt.length && rt[0].values.length) {
+                settings.runningText = rt[0].values[0][0];
+                setText("runningText", settings.runningText);
             }
         }
-        // Load PDFs (penambahan untuk memperbaiki masalah 1)
+
+        // ======================= 📌 PDFs ======================
         if (tableExists('ayat_pdf')) {
-            const ayatPdf = db.exec("SELECT pdf_data FROM ayat_pdf WHERE id = 1")[0];
-            if (ayatPdf && ayatPdf.values[0][0]) {
-                await loadPdfSlideshow(ayatPdf.values[0][0], 'ayatSlideshow');
-            }
+            const a = db.exec("SELECT pdf_data FROM ayat_pdf WHERE id = 1");
+            if (a.length && a[0].values.length) loadPdfSlideshow(a[0].values[0][0], 'ayatSlideshow');
         }
         if (tableExists('kas_pdf')) {
-            const kasPdf = db.exec("SELECT pdf_data FROM kas_pdf WHERE id = 1")[0];
-            if (kasPdf && kasPdf.values[0][0]) {
-                await loadPdfSlideshow(kasPdf.values[0][0], 'kasSlideshow');
-            }
+            const k = db.exec("SELECT pdf_data FROM kas_pdf WHERE id = 1");
+            if (k.length && k[0].values.length) loadPdfSlideshow(k[0].values[0][0], 'kasSlideshow');
         }
         if (tableExists('jadwal_pdf')) {
-            const jadwalPdf = db.exec("SELECT pdf_data FROM jadwal_pdf WHERE id = 1")[0];
-            if (jadwalPdf && jadwalPdf.values[0][0]) {
-                await loadPdfSlideshow(jadwalPdf.values[0][0], 'jadwalSlideshow');
-            }
+            const j = db.exec("SELECT pdf_data FROM jadwal_pdf WHERE id = 1");
+            if (j.length && j[0].values.length) loadPdfSlideshow(j[0].values[0][0], 'jadwalSlideshow');
         }
+
     } catch (error) {
-        console.error('Error loading settings:', error);
-        // Fallback ke defaults
+        console.error("Error loading settings:", error);
         settings = { ...defaultSettings };
     }
 }
-
 
 // Fungsi untuk menyimpan database ke IndexedDB
 async function saveDatabaseToIndexedDB() {
