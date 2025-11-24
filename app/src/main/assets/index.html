@@ -320,14 +320,14 @@ async function saveZoomToDB() {
             "INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)",
             [zoomLevel]
         );
-
         // ⬅ simpan juga ke settings untuk mencegah tampilan kembali default sebelum reload
         settings.zoomLevel = zoomLevel; 
-
         await saveDatabaseToIndexedDB();
         console.log("Zoom tersimpan:", zoomLevel);
+         showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
     } catch (e) {
         console.error("Gagal menyimpan zoom:", e);
+        showDebugMessage("❌ Zoom gagal disimpan");
     }
 }
 
