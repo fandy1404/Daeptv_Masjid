@@ -487,84 +487,101 @@ async function showContent(contentId) {
             } 
 }
 
+// helper: file -> base64 (only the base64 payload, no data: prefix)
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const res = reader.result;
+            // res = "data:...;base64,AAAA..."
+            const parts = res.split(',');
+            resolve(parts.length > 1 ? parts[1] : parts[0]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// final saveAdminSettings
 async function saveAdminSettings() {
     try {
-        document.getElementById("simpanadmin").disabled = true;
+        const btn = document.getElementById('simpanadmin');
+        btn.disabled = true;
 
-        // isi settings form
+        // gather fields (IDs must match)
+        const settings = {};
         settings.masjidName = document.getElementById('adminMasjidName').value;
         settings.masjidAddress = document.getElementById('adminMasjidAddress').value;
-        settings.runningText = document.getElementById('adminRunningText').value;
-        settings.quote.text = document.getElementById('adminQuoteText').value;
-        settings.quote.source = document.getElementById('adminQuoteSource').value;
-
         settings.prayerTimes = {
-            subuh: adminSubuh.value,
-            dzuhur: adminDzuhur.value,
-            ashar: adminAshar.value,
-            maghrib: adminMaghrib.value,
-            isya: adminIsya.value,
-            imsak: adminImsak.value,
-            syuruq: adminSyuruq.value,
+            subuh: document.getElementById('adminSubuh').value,
+            dzuhur: document.getElementById('adminDzuhur').value,
+            ashar: document.getElementById('adminAshar').value,
+            maghrib: document.getElementById('adminMaghrib').value,
+            isya: document.getElementById('adminIsya').value,
+            imsak: document.getElementById('adminImsak').value,
+            syuruq: document.getElementById('adminSyuruq').value
         };
-
+        settings.quote = {
+            text: document.getElementById('adminQuoteText').value,
+            source: document.getElementById('adminQuoteSource').value
+        };
+        settings.runningText = document.getElementById('adminRunningText').value;
         settings.iqomahDelays = {
-            subuh: parseInt(delaySubuh.value) || 0,
-            dzuhur: parseInt(delayDzuhur.value) || 0,
-            ashar: parseInt(delayAshar.value) || 0,
-            maghrib: parseInt(delayMaghrib.value) || 0,
-            isya: parseInt(delayIsya.value) || 0,
+            subuh: parseInt(document.getElementById('delaySubuh').value) || 0,
+            dzuhur: parseInt(document.getElementById('delayDzuhur').value) || 0,
+            ashar: parseInt(document.getElementById('delayAshar').value) || 0,
+            maghrib: parseInt(document.getElementById('delayMaghrib').value) || 0,
+            isya: parseInt(document.getElementById('delayIsya').value) || 0
         };
 
-        const isAndroid = typeof AndroidBridge !== "undefined";
+        const isAndroid = typeof AndroidBridge !== 'undefined';
 
-        // FILE UPLOAD (base64)
-        const heroImageFile = adminHeroImage.files[0];
-        if (heroImageFile) {
-            const base64 = await fileToBase64(heroImageFile);
-            if (isAndroid) AndroidBridge.saveHeroBase64(base64);
-            settings.heroImage = base64;
+        // files -> send to AndroidBridge if present
+        const heroFile = document.getElementById('adminHeroImage').files[0];
+        if (heroFile && isAndroid) {
+            const b64 = await fileToBase64(heroFile);
+            AndroidBridge.saveHeroBase64(b64);
         }
 
-        const audioFile = adminAudio.files[0];
-        if (audioFile) {
-            const base64 = await fileToBase64(audioFile);
-            if (isAndroid) AndroidBridge.saveAudioBase64(base64);
-            settings.audio = base64;
+        const audioFile = document.getElementById('adminAudio').files[0];
+        if (audioFile && isAndroid) {
+            const b64 = await fileToBase64(audioFile);
+            AndroidBridge.saveAudioBase64(b64);
         }
 
-        const videoQuranFile = adminVideoQuran.files[0];
-        if (videoQuranFile) {
-            const base64 = await fileToBase64(videoQuranFile);
-            if (isAndroid) AndroidBridge.saveVideoQuranBase64(base64);
-            settings.videos.quran = base64;
+        const videoQ = document.getElementById('adminVideoQuran').files[0];
+        if (videoQ && isAndroid) {
+            const b64 = await fileToBase64(videoQ);
+            AndroidBridge.saveVideoQuranBase64(b64);
         }
 
-        // ======= Penyimpanan =========
-        if (!isAndroid) {
-            // MODE BROWSER
-            await saveDatabaseToIndexedDB();
-        } else {
-            // MODE ANDROID → simpan SQLite via bridge
+        // Save settings: if Android -> via bridge, else -> IndexedDB
+        if (isAndroid && typeof AndroidBridge.saveSettingsJSON === 'function') {
             AndroidBridge.saveSettingsJSON(JSON.stringify(settings));
+        } else {
+            try {
+                await saveDatabaseToIndexedDB(); // your sqlite-wasm export
+                // also save settings JSON to IndexedDB/localStorage as needed
+                localStorage.setItem('app_settings_json', JSON.stringify(settings));
+            } catch (e) {
+                console.warn('IndexedDB save failed', e);
+                localStorage.setItem('app_settings_json', JSON.stringify(settings));
+            }
         }
 
+        // reload and UI update (functions you already have)
         await loadSettings();
         updatePrayerTimes();
         toggleAdmin();
-        alert("✔ Pengaturan berhasil disimpan!");
-    }
 
-    catch (e) {
-        alert("❌ Gagal menyimpan: " + e.message);
-        console.log(e);
-    }
-
-    finally {
-        document.getElementById("simpanadmin").disabled = false;
+        alert('✔ Pengaturan berhasil disimpan!');
+    } catch (err) {
+        console.error('saveAdminSettings error', err);
+        alert('❌ Gagal menyimpan: ' + (err && err.message ? err.message : err));
+    } finally {
+        document.getElementById('simpanadmin').disabled = false;
     }
 }
-
 
 // Fungsi untuk inisialisasi database
 async function initDatabase() {
