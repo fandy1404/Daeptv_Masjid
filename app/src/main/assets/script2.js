@@ -885,6 +885,28 @@ async function loadDatabaseFromIndexedDB() {
     });
 }
 
+function showDebugMessage(msg) {
+    let box = document.getElementById("debugBox");
+    if (!box) {
+        box = document.createElement("div");
+        box.id = "debugBox";
+        box.style.position = "fixed";
+        box.style.bottom = "10px";
+        box.style.right = "10px";
+        box.style.maxWidth = "320px";
+        box.style.background = "rgba(0,0,0,0.8)";
+        box.style.color = "white";
+        box.style.fontSize = "14px";
+        box.style.padding = "10px";
+        box.style.borderRadius = "8px";
+        box.style.zIndex = "999999";
+        box.style.fontFamily = "monospace";
+        document.body.appendChild(box);
+    }
+    box.innerHTML = msg;
+    setTimeout(() => box.remove(), 5000); // auto hilang 5 detik
+}
+
 //////////////////////////////////
 // Fungsi toggle yang sudah ada, dimodifikasi agar independen (tidak menutup yang lain)
 function toggleSidebar() {
