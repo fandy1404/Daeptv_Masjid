@@ -50,34 +50,44 @@ let audioElement = new Audio();
 
 
 // Initialize on page load
-window.onload = async function() {
-    await initDatabase();
+window.onload = async function () {
+
+    // 1️⃣ Pastikan database selesai 100% sebelum lanjut
+    await loadDatabaseFromIndexedDB();
+    await initDatabase(); 
+    await loadSettings(); // <— WAJIB setelah init
+
+    // 2️⃣ Update tampilan berdasarkan database
     updateClock();
     updateDates();
     updatePrayerTimes();
     updateCountdowns();
-    
-     const activeSection = localStorage.getItem('activeSection');
-            if (activeSection === 'ayat') {
-                localStorage.removeItem('activeSection'); // Hapus setelah digunakan
-                showContent('ayat');
-            }
+
+    // 3️⃣ Restore active section (misal pindah dari PDF viewer)
+    const activeSection = localStorage.getItem('activeSection');
+    if (activeSection) {
+        localStorage.removeItem('activeSection');
+        showContent(activeSection);
+    }
+
+    // 4️⃣ Isi form delay iqomah setelah settings dimuat
+    document.getElementById('delaySubuh').value = settings.iqomahDelays.subuh;
+    document.getElementById('delayDzuhur').value = settings.iqomahDelays.dzuhur;
+    document.getElementById('delayAshar').value = settings.iqomahDelays.ashar;
+    document.getElementById('delayMaghrib').value = settings.iqomahDelays.maghrib;
+    document.getElementById('delayIsya').value = settings.iqomahDelays.isya;
+
+    // 5️⃣ Jalankan upload setelah DB siap
     await uploadPdf('uploadAyatForm', 'ayat_pdf', 'ayatSlideshow');
     await uploadPdf('uploadKasForm', 'kas_pdf', 'kasSlideshow');
     await uploadPdf('uploadJadwalForm', 'jadwal_pdf', 'jadwalSlideshow');
-    
-    // Update every second
+
+    // 6️⃣ Pastikan interval dijalankan PALING AKHIR
     setInterval(updateClock, 1000);
     setInterval(updateCountdowns, 1000);
-    
-    // Update dates every minute
     setInterval(updateDates, 60000);
-    document.getElementById('delaySubuh').value = settings.iqomahDelays.subuh;
-document.getElementById('delayDzuhur').value = settings.iqomahDelays.dzuhur;
-document.getElementById('delayAshar').value = settings.iqomahDelays.ashar;
-document.getElementById('delayMaghrib').value = settings.iqomahDelays.maghrib;
-document.getElementById('delayIsya').value = settings.iqomahDelays.isya;
 
+    console.log("Aplikasi siap — DB tersinkron penuh");
 };
 
 // Clock function
