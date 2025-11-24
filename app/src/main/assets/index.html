@@ -288,7 +288,9 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         db.run("INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)", [zoomLevel]);
         await saveDatabaseToIndexedDB(); // tetap background, tapi dijamin selesai
+        alert("Zoom berhasil disimpan database");
     } catch (e) {
+        alert("Zoom Gagal disimpan database");
         console.log("SQLite save error:", e);
     }
 }
