@@ -487,96 +487,84 @@ async function showContent(contentId) {
             } 
 }
 
-
-
 async function saveAdminSettings() {
     try {
-        const btnSave = document.getElementById("simpanadmin");
-        btnSave.disabled = true;
+        document.getElementById("simpanadmin").disabled = true;
 
-        // Ambil values form
+        // isi settings form
         settings.masjidName = document.getElementById('adminMasjidName').value;
         settings.masjidAddress = document.getElementById('adminMasjidAddress').value;
+        settings.runningText = document.getElementById('adminRunningText').value;
+        settings.quote.text = document.getElementById('adminQuoteText').value;
+        settings.quote.source = document.getElementById('adminQuoteSource').value;
 
         settings.prayerTimes = {
-            subuh: document.getElementById('adminSubuh').value,
-            dzuhur: document.getElementById('adminDzuhur').value,
-            ashar: document.getElementById('adminAshar').value,
-            maghrib: document.getElementById('adminMaghrib').value,
-            isya: document.getElementById('adminIsya').value,
-            imsak: document.getElementById('adminImsak').value,
-            syuruq: document.getElementById('adminSyuruq').value
+            subuh: adminSubuh.value,
+            dzuhur: adminDzuhur.value,
+            ashar: adminAshar.value,
+            maghrib: adminMaghrib.value,
+            isya: adminIsya.value,
+            imsak: adminImsak.value,
+            syuruq: adminSyuruq.value,
         };
-
-        settings.quote = {
-            text: document.getElementById('adminQuoteText').value,
-            source: document.getElementById('adminQuoteSource').value
-        };
-
-        settings.runningText = document.getElementById('adminRunningText').value;
 
         settings.iqomahDelays = {
-            subuh: parseInt(document.getElementById('delaySubuh').value) || 10,
-            dzuhur: parseInt(document.getElementById('delayDzuhur').value) || 1,
-            ashar: parseInt(document.getElementById('delayAshar').value) || 10,
-            maghrib: parseInt(document.getElementById('delayMaghrib').value) || 5,
-            isya: parseInt(document.getElementById('delayIsya').value) || 2
+            subuh: parseInt(delaySubuh.value) || 0,
+            dzuhur: parseInt(delayDzuhur.value) || 0,
+            ashar: parseInt(delayAshar.value) || 0,
+            maghrib: parseInt(delayMaghrib.value) || 0,
+            isya: parseInt(delayIsya.value) || 0,
         };
 
-        // Helper untuk kirim file ke AndroidBridge jika ada
-        async function sendFile(fileInputId, saveFuncName) {
-            const file = document.getElementById(fileInputId).files[0];
-            if (!file) return; // file kosong → skip
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-                if (window.AndroidBridge && typeof window.AndroidBridge[saveFuncName] === "function") {
-                    window.AndroidBridge[saveFuncName](base64);
-                }
-            } catch (e) {
-                console.error(`Upload failed ${fileInputId}:`, e);
-            }
+        const isAndroid = typeof AndroidBridge !== "undefined";
+
+        // FILE UPLOAD (base64)
+        const heroImageFile = adminHeroImage.files[0];
+        if (heroImageFile) {
+            const base64 = await fileToBase64(heroImageFile);
+            if (isAndroid) AndroidBridge.saveHeroBase64(base64);
+            settings.heroImage = base64;
         }
 
-        // Kirim file yang ada
-        await sendFile('adminHeroImage', 'saveVideoBase64');
-        await sendFile('adminVideoQuran', 'saveVideoBase64');
-        await sendFile('adminVideoKajian', 'saveVideoBase64');
-        await sendFile('adminVideoKhutbah', 'saveVideoBase64');
-        await sendFile('adminAudio', 'saveAudioBase64');
-
-        // Kirim metadata ke AndroidBridge jika tersedia
-        if (window.AndroidBridge) {
-            if (typeof window.AndroidBridge.addMedia === "function") {
-                window.AndroidBridge.addMedia("hero", "hero_image_path", "Hero Image");
-            }
-            if (typeof window.AndroidBridge.getAllMediaJson === "function") {
-                const mediaJson = window.AndroidBridge.getAllMediaJson();
-                console.log("Media JSON from AndroidBridge:", mediaJson);
-            }
+        const audioFile = adminAudio.files[0];
+        if (audioFile) {
+            const base64 = await fileToBase64(audioFile);
+            if (isAndroid) AndroidBridge.saveAudioBase64(base64);
+            settings.audio = base64;
         }
 
-        // Simpan ke IndexedDB jika tersedia
-        try {
+        const videoQuranFile = adminVideoQuran.files[0];
+        if (videoQuranFile) {
+            const base64 = await fileToBase64(videoQuranFile);
+            if (isAndroid) AndroidBridge.saveVideoQuranBase64(base64);
+            settings.videos.quran = base64;
+        }
+
+        // ======= Penyimpanan =========
+        if (!isAndroid) {
+            // MODE BROWSER
             await saveDatabaseToIndexedDB();
-        } catch (e) {
-            console.warn("IndexedDB save failed, fallback ke AndroidBridge", e);
+        } else {
+            // MODE ANDROID → simpan SQLite via bridge
+            AndroidBridge.saveSettingsJSON(JSON.stringify(settings));
         }
 
-        // Reload / update UI
         await loadSettings();
         updatePrayerTimes();
-
-        btnSave.disabled = false;
         toggleAdmin();
         alert("✔ Pengaturan berhasil disimpan!");
+    }
 
-    } catch (err) {
-        console.error("Error saveAdminSettings:", err);
-        alert("❌ Terjadi kesalahan saat menyimpan pengaturan.");
+    catch (e) {
+        alert("❌ Gagal menyimpan: " + e.message);
+        console.log(e);
+    }
+
+    finally {
         document.getElementById("simpanadmin").disabled = false;
     }
 }
+
 
 // Fungsi untuk inisialisasi database
 async function initDatabase() {
