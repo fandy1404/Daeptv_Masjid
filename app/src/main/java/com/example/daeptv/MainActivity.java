@@ -1,100 +1,147 @@
-package com.example.daeptv;
-
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.os.Bundle;
-import android.util.Log;
-import android.webkit.ConsoleMessage;
+// import statements
 import android.webkit.JavascriptInterface;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
+import android.util.Log;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.Cursor;
 
-import androidx.appcompat.app.AppCompatActivity;
+...
 
 public class MainActivity extends AppCompatActivity {
-
     private WebView webView;
-    private JSBridge jsBridge;
     private DBHelper dbHelper;
-    private DatabaseHelper dbMeta;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         webView = findViewById(R.id.webview);
+
+        // Setup DB helper
         dbHelper = new DBHelper(this);
-        dbMeta = new DatabaseHelper(this);
 
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
-        settings.setAllowFileAccessFromFileURLs(true);
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        // WebView settings
+        WebSettings s = webView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
+        s.setAllowFileAccess(true);
+        s.setAllowContentAccess(true);
+        s.setAllowUniversalAccessFromFileURLs(true);
+        s.setAllowFileAccessFromFileURLs(true);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        s.setMediaPlaybackRequiresUserGesture(false);
 
+        // Console logging
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d("WebViewConsole", consoleMessage.message() + " -- line " + consoleMessage.lineNumber());
+            public boolean onConsoleMessage(ConsoleMessage msg) {
+                Log.d("WebViewConsole", msg.message() + " -- From line: " + msg.lineNumber());
                 return true;
             }
         });
 
-        jsBridge = new JSBridge(this, dbHelper, dbMeta);
-        webView.addJavascriptInterface(jsBridge, "AndroidBridge");
+        // Register bridge
+        webView.addJavascriptInterface(new JSBridge(this, dbHelper), "AndroidBridge");
 
         webView.loadUrl("file:///android_asset/index.html");
     }
 
-    @Override
-    public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
-    }
-
-    // ===== JSBridge =====
+    // JSBridge inner class
     public static class JSBridge {
         Context ctx;
-        DBHelper db;
-        DatabaseHelper dbMeta;
+        DBHelper helper;
 
-        JSBridge(Context c, DBHelper dbHelper, DatabaseHelper databaseHelper) {
+        public JSBridge(Context c, DBHelper dbHelper) {
             ctx = c;
-            db = dbHelper;
-            dbMeta = databaseHelper;
+            helper = dbHelper;
         }
 
-        // Base64 fallback
+        // Save whole settings JSON
         @JavascriptInterface
-        public String getVideoBase64() { return db.getLatestMediaBase64("video"); }
+        public void saveSettingsJSON(String json) {
+            try {
+                SQLiteDatabase db = helper.getWritableDatabase();
+                helper.saveSettingsJson(db, json);
+                db.close();
+                Log.i("JSBridge", "saveSettingsJSON OK");
+            } catch (Exception e) {
+                Log.e("JSBridge", "saveSettingsJSON error", e);
+            }
+        }
 
         @JavascriptInterface
-        public String getAudioBase64() { return db.getLatestMediaBase64("audio"); }
+        public String loadSettingsJSON() {
+            try {
+                SQLiteDatabase db = helper.getReadableDatabase();
+                String res = helper.loadSettingsJson(db);
+                db.close();
+                return res;
+            } catch (Exception e) {
+                Log.e("JSBridge", "loadSettingsJSON error", e);
+                return "";
+            }
+        }
+
+        // Media save
+        @JavascriptInterface
+        public void saveHeroBase64(String b64) {
+            try {
+                SQLiteDatabase db = helper.getWritableDatabase();
+                helper.saveMedia(db, "hero", b64);
+                db.close();
+            } catch (Exception e) {
+                Log.e("JSBridge", "saveHeroBase64 error", e);
+            }
+        }
 
         @JavascriptInterface
-        public void saveVideoBase64(String base64) { db.saveMedia("video", base64); }
+        public void saveAudioBase64(String b64) {
+            try {
+                SQLiteDatabase db = helper.getWritableDatabase();
+                helper.saveMedia(db, "audio", b64);
+                db.close();
+            } catch (Exception e) {
+                Log.e("JSBridge", "saveAudioBase64 error", e);
+            }
+        }
 
         @JavascriptInterface
-        public void saveAudioBase64(String base64) { db.saveMedia("audio", base64); }
+        public void saveVideoQuranBase64(String b64) {
+            try {
+                SQLiteDatabase db = helper.getWritableDatabase();
+                helper.saveMedia(db, "video_quran", b64);
+                db.close();
+            } catch (Exception e) {
+                Log.e("JSBridge", "saveVideoQuranBase64 error", e);
+            }
+        }
+
+        // get latest media
+        @JavascriptInterface
+        public String getLatestMedia(String type) {
+            try {
+                SQLiteDatabase db = helper.getReadableDatabase();
+                String res = helper.getLatestMedia(db, type);
+                db.close();
+                return res;
+            } catch (Exception e) {
+                Log.e("JSBridge", "getLatestMedia error", e);
+                return "";
+            }
+        }
 
         @JavascriptInterface
-        public void saveHeroBase64(String base64) { db.saveMedia("hero", base64); }
-
-        // Metadata
-        @JavascriptInterface
-        public void addMedia(String type, String path, String name) { dbMeta.addMedia(type, path, name); }
-
-        @JavascriptInterface
-        public String getAllMediaJson() { return dbMeta.getAllMediaAsJson(); }
-    }
+        public String getAllMediaMetaJson() {
+            try {
+                SQLiteDatabase db = helper.getReadableDatabase();
+                String res = helper.getAllMediaMetaJson(db);
+                db.close();
+                return res;
+            } catch (Exception e) {
+                Log.e("JSBridge", "getAllMediaMetaJson error", e);
+                return "[]";
+            }
+        }
+    } // end JSBridge
 }
