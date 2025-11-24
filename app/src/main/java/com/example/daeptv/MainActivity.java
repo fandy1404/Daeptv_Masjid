@@ -3,15 +3,17 @@ package com.example.daeptv;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+
 import androidx.appcompat.app.AppCompatActivity;
-import android.view.WindowManager;
 
 public class MainActivity extends AppCompatActivity {
+
     private WebView webView;
     private JSBridge jsBridge;
 
@@ -19,17 +21,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main); // load XML layout
 
-        // Force hardware acceleration for media
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
-
-        webView = new WebView(this);
-        setContentView(webView);
+        webView = findViewById(R.id.webview);
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
+        s.setDomStorageEnabled(true);      // IndexedDB / LocalStorage
         s.setDatabaseEnabled(true);
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(true);
@@ -37,22 +35,24 @@ public class MainActivity extends AppCompatActivity {
         s.setAllowFileAccessFromFileURLs(true);
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
-        s.setMediaPlaybackRequiresUserGesture(false); // allow autoplay
+        s.setMediaPlaybackRequiresUserGesture(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-        // Prevent console errors from crashing flow (catch noisy messages)
+        // WebChromeClient untuk console log dan error JS
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                // swallow console messages to avoid unexpected behavior
+                Log.d("WebViewConsole", consoleMessage.message() +
+                        " -- From line: " + consoleMessage.lineNumber());
                 return true;
             }
         });
 
+        // JS Bridge
         jsBridge = new JSBridge(this);
         webView.addJavascriptInterface(jsBridge, "AndroidBridge");
 
-        // Load local index (ensure index.html is at app/src/main/assets/index.html)
+        // Load local index.html
         webView.loadUrl("file:///android_asset/index.html");
     }
 
@@ -62,17 +62,23 @@ public class MainActivity extends AppCompatActivity {
         else super.onBackPressed();
     }
 
-    // Minimal JS bridge to expose Base64 video/audio from SQLite
+    // JS Bridge class
     public static class JSBridge {
         Context ctx;
-        JSBridge(Context c){ ctx = c; }
+
+        JSBridge(Context c) {
+            ctx = c;
+        }
 
         @JavascriptInterface
         public String getVideoBase64() {
             try {
                 DBHelper db = new DBHelper(ctx);
                 return db.getLatestMediaBase64("video");
-            } catch (Exception e) { return ""; }
+            } catch (Exception e) {
+                Log.e("JSBridge", "Error getVideoBase64", e);
+                return "";
+            }
         }
 
         @JavascriptInterface
@@ -80,7 +86,10 @@ public class MainActivity extends AppCompatActivity {
             try {
                 DBHelper db = new DBHelper(ctx);
                 return db.getLatestMediaBase64("audio");
-            } catch (Exception e) { return ""; }
+            } catch (Exception e) {
+                Log.e("JSBridge", "Error getAudioBase64", e);
+                return "";
+            }
         }
     }
 }
