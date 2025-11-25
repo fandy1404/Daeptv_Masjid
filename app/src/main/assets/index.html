@@ -90,11 +90,11 @@ window.onAndroidCallback = function(event, success, error) {
 };
 
 /* ⬇ lalu init dan window.onload */
-window.onload = async function () {
-    await initDatabase();
-    await loadSettings();
+//window.onload = async function () {
+ //   await initDatabase();
+  //  await loadSettings();
     // ...
-};
+//};
 </script>
 
  <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
@@ -310,14 +310,103 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 }); */
-    async function safeRun(stepName, fn) {
+// --- PASTE START: safeRun, showDebugMessage fallback, zoom helpers ---
+if (typeof showDebugMessage !== 'function') {
+  window.showDebugMessage = function(msg) {
+    try {
+      console.log("DEBUG: " + msg);
+      var el = document.getElementById('debugBox');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'debugBox';
+        el.style.position = 'fixed';
+        el.style.right = '10px';
+        el.style.bottom = '10px';
+        el.style.maxWidth = '360px';
+        el.style.zIndex = 99999;
+        el.style.background = 'rgba(0,0,0,0.75)';
+        el.style.color = '#fff';
+        el.style.padding = '8px';
+        el.style.borderRadius = '6px';
+        el.style.fontSize = '12px';
+        el.style.fontFamily = 'sans-serif';
+        document.body.appendChild(el);
+      }
+      var item = document.createElement('div');
+      item.style.marginBottom = '6px';
+      item.textContent = msg;
+      el.appendChild(item);
+      setTimeout(function(){ try{ el.removeChild(item);}catch(e){} }, 8000);
+    } catch(e) {
+      try { console.log("showDebugMessage fallback failed: " + e); } catch(_) {}
+    }
+  };
+}
+
+async function safeRun(stepName, fn) {
   try {
-    await fn();
-    showDebugMessage("✅ Selesai: " + stepName);
+    var res = fn();
+    if (res && typeof res.then === 'function') await res;
+    showDebugMessage("✅ " + stepName + " selesai");
   } catch (err) {
-    showDebugMessage("❌ ERROR di tahap " + stepName + ": " + err);
+    showDebugMessage("❌ ERROR di " + stepName + ": " + (err && err.message ? err.message : err));
   }
 }
+
+// Zoom persistence helpers (safe)
+window.zoomLevel = window.settings?.zoomLevel ?? 1;
+async function saveZoomToDB() {
+  try {
+    if (typeof db === 'undefined' || !db) throw new Error("DB belum siap");
+    // Try sqlite-like save if available
+    try {
+      if (typeof db.run === 'function') {
+        db.run("CREATE TABLE IF NOT EXISTS zoom_settings (id INTEGER PRIMARY KEY, zoom REAL)");
+        db.run("INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)", [zoomLevel]);
+      }
+    } catch(e) {
+      // ignore sqlite-specific errors; we'll persist settings to IndexedDB below
+    }
+    window.settings = window.settings || {};
+    window.settings.zoomLevel = zoomLevel;
+    if (typeof saveDatabaseToIndexedDB === 'function') {
+      await saveDatabaseToIndexedDB();
+    }
+    showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
+  } catch (e) {
+    showDebugMessage("❌ Zoom gagal disimpan: " + (e && e.message ? e.message : e));
+  }
+}
+
+async function loadZoomFromDB() {
+  try {
+    if (typeof db !== 'undefined' && db && typeof db.get === 'function') {
+      db.get("SELECT zoom FROM zoom_settings WHERE id = 1", [], (err, row) => {
+        if (err) {
+          showDebugMessage("⚠ loadZoomFromDB sqlite err: " + (err.message || err));
+          return;
+        }
+        if (row && row.zoom != null) {
+          zoomLevel = parseFloat(row.zoom);
+          window.settings = window.settings || {};
+          window.settings.zoomLevel = zoomLevel;
+          if (typeof applyZoom === 'function') applyZoom(zoomLevel);
+          showDebugMessage("🔎 Zoom dipulihkan: " + zoomLevel);
+        }
+      });
+    } else if (window.settings && window.settings.zoomLevel != null) {
+      zoomLevel = window.settings.zoomLevel;
+      if (typeof applyZoom === 'function') applyZoom(zoomLevel);
+      showDebugMessage("🔎 Zoom dipulihkan dari settings: " + zoomLevel);
+    } else {
+      showDebugMessage("⚠ Tidak menemukan data zoom; gunakan default: " + zoomLevel);
+    }
+  } catch (e) {
+    showDebugMessage("⚠ Gagal memuat zoom: " + (e && e.message ? e.message : e));
+  }
+}
+// --- PASTE END ---
+
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -329,57 +418,6 @@ const maxZoom = 2;
 
 // Terapkan zoom pertama kali
 applyZoom(zoomLevel);
-    async function loadZoomFromDB() {
-    try {
-        if (!db) throw new Error("SQLite belum siap");
-
-        db.get("SELECT zoom FROM zoom_settings WHERE id = 1", [], (err, row) => {
-            if (row?.zoom) {
-                zoomLevel = row.zoom;
-                settings.zoomLevel = row.zoom;
-                applyZoom(row.zoom);
-                showDebugMessage("🔎 Zoom dipulihkan: " + row.zoom);
-            }
-        });
-    } catch (e) {
-        showDebugMessage("⚠ Gagal memuat zoom: " + e.message);
-    }
-}
-
-    await loadZoomFromDB();
-
-async function saveZoomToDB() {
-    try {
-        if (!db) throw new Error("Database SQLite belum siap");
-
-        // Pastikan tabel ada
-        db.run(
-            "CREATE TABLE IF NOT EXISTS zoom_settings (id INTEGER PRIMARY KEY, zoom REAL)"
-        );
-
-        db.run(
-            "INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)",
-            [zoomLevel]
-        );
-
-        // Simpan juga ke settings agar tidak revert sebelum reload
-        settings.zoomLevel = zoomLevel;
-
-        await saveDatabaseToIndexedDB(); // untuk persist ke local storage / IndexedDB
-
-        showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
-    } catch (e) {
-        showDebugMessage("❌ Zoom gagal disimpan: " + e.message);
-    }
-}
-
-async function safe(action, fn) {
-    try {
-        await fn();
-    } catch (e) {
-        showDebugMessage("❌ Error di " + action + ": " + e.message);
-    }
-}
 
 document.getElementById('zoom-in').addEventListener('click', async function () {
     if (zoomLevel < maxZoom) {
@@ -670,7 +708,9 @@ document.getElementById('refresh')
     <button class="admin-toggle" onclick="toggleAdmin()">⚙️ Admin</button>
     <!-- Elemen panah statis untuk navigasi -->
 </div>
-
+<div id="debugBox"
+     style="background:#222;color:#eee;padding:10px;font-size:13px;height:150px;overflow:auto;">
+</div>
 
 <div id="arrow-up" style="display: none; position: fixed; top: 10px; right: 10px; font-size: 24px; color: red; z-index: 9999;">↑</div>
 <div id="arrow-down" style="display: none; position: fixed; bottom: 10px; right: 10px; font-size: 24px; color: red; z-index: 9999;">↓</div>
@@ -917,8 +957,6 @@ async function loadPdfSlideshow3(pdfBlob, slideshowId, showToolbar = false) {
 }
 
 </script>
-<div id="debugBox"
-     style="background:#222;color:#eee;padding:10px;font-size:13px;height:150px;overflow:auto;">
-</div>
+
 </body>
 </html>
