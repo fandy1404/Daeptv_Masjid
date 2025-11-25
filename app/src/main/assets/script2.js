@@ -584,7 +584,7 @@ async function saveAdminSettings() {
         updatePrayerTimes();
         toggleAdmin();
 
-        alert('✔ Pengaturan berhasil disimpan!');
+        alert('✔ admin Setting berhasil disimpan!');
     } catch (err) {
         console.error('saveAdminSettings error', err);
         alert('❌ Gagal menyimpan: ' + (err && err.message ? err.message : err));
