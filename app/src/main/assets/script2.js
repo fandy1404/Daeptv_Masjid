@@ -941,7 +941,7 @@ async function loadDatabaseFromIndexedDB() {
     });
 }
 
-function showDebugMessage(msg) {
+/*function showDebugMessage(msg) {
     // Buat debug box jika belum ada
     let box = document.getElementById("debugBox");
     if (!box) {
@@ -989,7 +989,7 @@ function showDebugMessage(msg) {
         document.body.appendChild(btn);
     }
 }
-
+*/
 
 //////////////////////////////////
 // Fungsi toggle yang sudah ada, dimodifikasi agar independen (tidak menutup yang lain)
