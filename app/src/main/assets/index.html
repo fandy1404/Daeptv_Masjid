@@ -270,46 +270,9 @@ document.addEventListener('DOMContentLoaded', function(){
   tryLoadMedia();
 });
 
-/*document.addEventListener('DOMContentLoaded', function() {
-    let zoomLevel = 1;
-    const step = 0.1;
-    const minZoom = 0.5;
-    const maxZoom = 2;
-    // pilih root yg akan di-zoom (bukan <body>)
-    const root = document.getElementById('app-root') || document.body;
-    function applyZoom() {
-        root.style.transform = `scale(${zoomLevel})`;
-        root.style.transformOrigin = "top left";
-        
-        // agar layout tetap fill dan tidak keluar batas
-        root.style.width = (100 / zoomLevel) + "%";
-        root.style.height = (100 / zoomLevel) + "%";
-    }
+const DEBUG = true; // ubah false saat rilis
+if (!DEBUG) document.getElementById("debugBox").style.display = "none";
 
-    document.getElementById('zoom-in').addEventListener('click', function() {
-        if (zoomLevel < maxZoom) {
-            zoomLevel += step;
-            applyZoom();
-        }
-    });
-
-    document.getElementById('zoom-out').addEventListener('click', function() {
-        if (zoomLevel > minZoom) {
-            zoomLevel -= step;
-            applyZoom();
-        }
-    });
-
-    document.getElementById('fullscreen').addEventListener('click', function() {
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) {
-            document.documentElement.webkitRequestFullscreen();
-        } else if (document.documentElement.msRequestFullscreen) {
-            document.documentElement.msRequestFullscreen();
-        }
-    });
-}); */
 // --- PASTE START: safeRun, showDebugMessage fallback, zoom helpers ---
 if (typeof showDebugMessage !== 'function') {
   window.showDebugMessage = function(msg) {
