@@ -48,6 +48,10 @@ let settings = { ...defaultSettings };
 let audioElement = new Audio();
 
 
+window.addEventListener("error", (e) => {
+    showDebugMessage("⚠️ Ada Eror sebelum javascript: " + e.message);
+    return true; // cegah crash seluruh script
+});
 
 // Initialize on page load
 // --- PASTE START: safe init sequence (gunakan safeRun untuk setiap tahap) ---
