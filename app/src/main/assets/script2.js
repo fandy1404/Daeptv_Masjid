@@ -554,83 +554,88 @@ function fileToBase64(file) {
 
 // final saveAdminSettings
 async function saveAdminSettings() {
-    try {
-        const btn = document.getElementById('simpanadmin');
-        btn.disabled = true;
+  const btn = document.getElementById('simpanadmin');
+  btn.disabled = true;
 
-        // gather fields (IDs must match)
-        const settings = {};
-        settings.masjidName = document.getElementById('adminMasjidName').value;
-        settings.masjidAddress = document.getElementById('adminMasjidAddress').value;
-        settings.prayerTimes = {
-            subuh: document.getElementById('adminSubuh').value,
-            dzuhur: document.getElementById('adminDzuhur').value,
-            ashar: document.getElementById('adminAshar').value,
-            maghrib: document.getElementById('adminMaghrib').value,
-            isya: document.getElementById('adminIsya').value,
-            imsak: document.getElementById('adminImsak').value,
-            syuruq: document.getElementById('adminSyuruq').value
-        };
-        settings.quote = {
-            text: document.getElementById('adminQuoteText').value,
-            source: document.getElementById('adminQuoteSource').value
-        };
-        settings.runningText = document.getElementById('adminRunningText').value;
-        settings.iqomahDelays = {
-            subuh: parseInt(document.getElementById('delaySubuh').value) || 0,
-            dzuhur: parseInt(document.getElementById('delayDzuhur').value) || 0,
-            ashar: parseInt(document.getElementById('delayAshar').value) || 0,
-            maghrib: parseInt(document.getElementById('delayMaghrib').value) || 0,
-            isya: parseInt(document.getElementById('delayIsya').value) || 0
-        };
+  showDebugMessage("⏳ Mulai menyimpan pengaturan admin...");
 
-        const isAndroid = typeof AndroidBridge !== 'undefined';
-
-        // files -> send to AndroidBridge if present
-        const heroFile = document.getElementById('adminHeroImage').files[0];
-        if (heroFile && isAndroid) {
-            const b64 = await fileToBase64(heroFile);
-            AndroidBridge.saveHeroBase64(b64);
+  try {
+    // 1. Kumpulkan input
+    await safeRun("Kumpulkan input form", () => {
+      settings = {
+        masjidName: adminMasjidName.value,
+        masjidAddress: adminMasjidAddress.value,
+        prayerTimes: {
+          subuh: adminSubuh.value,
+          dzuhur: adminDzuhur.value,
+          ashar: adminAshar.value,
+          maghrib: adminMaghrib.value,
+          isya: adminIsya.value,
+          imsak: adminImsak.value,
+          syuruq: adminSyuruq.value
+        },
+        quote: {
+          text: adminQuoteText.value,
+          source: adminQuoteSource.value
+        },
+        runningText: adminRunningText.value,
+        iqomahDelays: {
+          subuh: parseInt(delaySubuh.value) || 0,
+          dzuhur: parseInt(delayDzuhur.value) || 0,
+          ashar: parseInt(delayAshar.value) || 0,
+          maghrib: parseInt(delayMaghrib.value) || 0,
+          isya: parseInt(delayIsya.value) || 0
         }
+      };
+    });
 
-        const audioFile = document.getElementById('adminAudio').files[0];
-        if (audioFile && isAndroid) {
-            const b64 = await fileToBase64(audioFile);
-            AndroidBridge.saveAudioBase64(b64);
-        }
+    const isAndroid = typeof AndroidBridge !== "undefined";
 
-        const videoQ = document.getElementById('adminVideoQuran').files[0];
-        if (videoQ && isAndroid) {
-            const b64 = await fileToBase64(videoQ);
-            AndroidBridge.saveVideoQuranBase64(b64);
-        }
+    // 2. Simpan file-file jika ada
+    await safeRun("Simpan gambar hero (jika ada)", async () => {
+      const hero = adminHeroImage.files[0];
+      if (hero && isAndroid) AndroidBridge.saveHeroBase64(await fileToBase64(hero));
+    });
 
-        // Save settings: if Android -> via bridge, else -> IndexedDB
-        if (isAndroid && typeof AndroidBridge.saveSettingsJSON === 'function') {
-            AndroidBridge.saveSettingsJSON(JSON.stringify(settings));
-        } else {
-            try {
-                await saveDatabaseToIndexedDB(); // your sqlite-wasm export
-                // also save settings JSON to IndexedDB/localStorage as needed
-                localStorage.setItem('app_settings_json', JSON.stringify(settings));
-            } catch (e) {
-                console.warn('IndexedDB save failed', e);
-                localStorage.setItem('app_settings_json', JSON.stringify(settings));
-            }
-        }
+    await safeRun("Simpan audio (jika ada)", async () => {
+      const audio = adminAudio.files[0];
+      if (audio && isAndroid) AndroidBridge.saveAudioBase64(await fileToBase64(audio));
+    });
 
-        // reload and UI update (functions you already have)
-        await loadSettings();
-        updatePrayerTimes();
-        toggleAdmin();
+    await safeRun("Simpan video Quran (jika ada)", async () => {
+      const quran = adminVideoQuran.files[0];
+      if (quran && isAndroid) AndroidBridge.saveVideoQuranBase64(await fileToBase64(quran));
+    });
 
-        alert('✔ admin Setting berhasil disimpan!');
-    } catch (err) {
-        console.error('saveAdminSettings error', err);
-        alert('❌ Gagal menyimpan: ' + (err && err.message ? err.message : err));
-    } finally {
-        document.getElementById('simpanadmin').disabled = false;
-    }
+    // 3. Simpan settings ke Android atau IndexedDB
+    await safeRun("Simpan settings JSON", async () => {
+      if (isAndroid && AndroidBridge.saveSettingsJSON) {
+        AndroidBridge.saveSettingsJSON(JSON.stringify(settings));
+      } else {
+        await saveDatabaseToIndexedDB().catch(() => {});
+        localStorage.setItem("app_settings_json", JSON.stringify(settings));
+      }
+    });
+
+    // 4. Reload UI bagian tampilan
+    await safeRun("Reload loadSettings()", loadSettings);
+    await safeRun("Reload updatePrayerTimes()", updatePrayerTimes);
+
+    // 5. Tutup panel admin (jika fungsi tersedia)
+    await safeRun("toggleAdmin()", () => {
+      if (typeof toggleAdmin === "function") toggleAdmin();
+      else showDebugMessage("⚠ toggleAdmin() tidak ditemukan!");
+    });
+
+    alert("✔ admin Setting berhasil disimpan!");
+    showDebugMessage("🎉 Penyimpanan selesai tanpa error");
+
+  } catch (err) {
+    showDebugMessage("❌ ERROR utama: " + (err?.message || err));
+    alert("❌ Gagal menyimpan: " + (err?.message || err));
+  }
+
+  btn.disabled = false;
 }
 
 // Fungsi untuk inisialisasi database
@@ -690,7 +695,7 @@ async function initDatabase() {
 
 
 function applyZoom(level) {
-    document.documentElement.style.fontSize = `${16 * level}px`;
+    document.documentElement.style.fontSize = `${13 * level}px`;
 }
 
 // Fungsi untuk cek apakah tabel ada
