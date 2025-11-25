@@ -50,49 +50,81 @@ let audioElement = new Audio();
 
 
 // Initialize on page load
+// --- PASTE START: safe init sequence (gunakan safeRun untuk setiap tahap) ---
 window.addEventListener('load', async () => {
-  showDebugMessage("⏳ Memulai aplikasi...");
+  showDebugMessage("⏳ Memulai aplikasi (safe init)...");
+  await safeRun("initDatabase", async () => {
+    if (typeof initDatabase === 'function') await initDatabase();
+    else showDebugMessage("⚠ initDatabase() tidak ditemukan");
+  });
+  await safeRun("loadDatabaseFromIndexedDB", async () => {
+    if (typeof loadDatabaseFromIndexedDB === 'function') await loadDatabaseFromIndexedDB();
+    else showDebugMessage("⚠ loadDatabaseFromIndexedDB() tidak ditemukan");
+  });
+  await safeRun("loadSettings", async () => {
+    if (typeof loadSettings === 'function') await loadSettings();
+    else showDebugMessage("⚠ loadSettings() tidak ditemukan");
+  });
 
-  await safeRun("initDatabase", async () => initDatabase());
-  await safeRun("loadDatabaseFromIndexedDB", async () => loadDatabaseFromIndexedDB());
-  await safeRun("loadSettings", async () => loadSettings());
+  // load zoom AFTER settings/db are ready
+  await safeRun("loadZoomFromDB", async () => {
+    if (typeof loadZoomFromDB === 'function') await loadZoomFromDB();
+    else showDebugMessage("⚠ loadZoomFromDB() tidak ditemukan");
+  });
 
-  await safeRun("updateClock", async () => updateClock());
-  await safeRun("updateDates", async () => updateDates());
-  await safeRun("updatePrayerTimes", async () => updatePrayerTimes());
-  await safeRun("updateCountdowns", async () => updateCountdowns());
+  // UI updates (non-blocking but reported)
+  await safeRun("updateClock", async () => { if (typeof updateClock === 'function') updateClock(); });
+  await safeRun("updateDates", async () => { if (typeof updateDates === 'function') updateDates(); });
+  await safeRun("updatePrayerTimes", async () => { if (typeof updatePrayerTimes === 'function') updatePrayerTimes(); });
+  await safeRun("updateCountdowns", async () => { if (typeof updateCountdowns === 'function') updateCountdowns(); });
 
+  // restore active section safely
   await safeRun("restoreActiveSection", async () => {
-    const activeSection = localStorage.getItem("activeSection");
-    if (activeSection) {
-      localStorage.removeItem("activeSection");
-      showContent(activeSection);
-    }
+    try {
+      const activeSection = localStorage.getItem('activeSection');
+      if (activeSection) {
+        localStorage.removeItem('activeSection');
+        if (typeof showContent === 'function') showContent(activeSection);
+      }
+    } catch(e) { showDebugMessage("⚠ restoreActiveSection err: " + (e.message||e)); }
   });
 
+  // fill iqomah inputs safely
   await safeRun("isiDelayIqomahKeForm", async () => {
-    const setValue = (id, value) => {
-      const el = document.getElementById(id);
-      if (el) el.value = value ?? 0;
-    };
-    setValue("delaySubuh", settings.iqomahDelays.subuh);
-    setValue("delayDzuhur", settings.iqomahDelays.dzuhur);
-    setValue("delayAshar", settings.iqomahDelays.ashar);
-    setValue("delayMaghrib", settings.iqomahDelays.maghrib);
-    setValue("delayIsya", settings.iqomahDelays.isya);
+    try {
+      const map = {
+        delaySubuh: settings?.iqomahDelays?.subuh,
+        delayDzuhur: settings?.iqomahDelays?.dzuhur,
+        delayAshar: settings?.iqomahDelays?.ashar,
+        delayMaghrib: settings?.iqomahDelays?.maghrib,
+        delayIsya: settings?.iqomahDelays?.isya
+      };
+      for (const id in map) {
+        const el = document.getElementById(id);
+        if (el) el.value = (map[id] ?? 0);
+      }
+    } catch(e) { showDebugMessage("⚠ isiDelayIqomahKeForm err: " + (e.message||e)); }
   });
 
-  await safeRun("uploadAyatPDF", () => uploadPdf('uploadAyatForm', 'ayat_pdf', 'ayatSlideshow'));
-  await safeRun("uploadKasPDF", () => uploadPdf('uploadKasForm', 'kas_pdf', 'kasSlideshow'));
-  await safeRun("uploadJadwalPDF", () => uploadPdf('uploadJadwalForm', 'jadwal_pdf', 'jadwalSlideshow'));
+  // kick off upload tasks but don't block the UI
+  try {
+    if (typeof uploadPdf === 'function') {
+      safeRun("uploadAyatPDF", () => uploadPdf('uploadAyatForm', 'ayat_pdf', 'ayatSlideshow'));
+      safeRun("uploadKasPDF", () => uploadPdf('uploadKasForm', 'kas_pdf', 'kasSlideshow'));
+      safeRun("uploadJadwalPDF", () => uploadPdf('uploadJadwalForm', 'jadwal_pdf', 'jadwalSlideshow'));
+    }
+  } catch(e) { showDebugMessage("⚠ upload tasks err: " + (e.message||e)); }
 
-  // Timer TETAP jalan meski ada error sebelumnya
-  setInterval(() => safeRun("updateClock interval", updateClock), 1000);
-  setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000);
-  setInterval(() => safeRun("updateDates interval", updateDates), 60000);
+  // ensure intervals use safeRun wrappers so an exception in a tick won't kill them
+  window.__intervals = window.__intervals || [];
+  if (typeof updateClock === 'function') window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
+  if (typeof updateCountdowns === 'function') window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
+  if (typeof updateDates === 'function') window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
 
-  showDebugMessage("🚀 Aplikasi siap digunakan");
+  showDebugMessage("🚀 Aplikasi siap digunakan (safe init)");
 });
+// --- PASTE END ---
+
 
 // Clock function
 /*function updateClock() {
