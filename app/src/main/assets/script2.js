@@ -966,7 +966,7 @@ function showDebugMessage(msg) {
     if (!document.getElementById("clearDebugBtn")) {
         let btn = document.createElement("button");
         btn.id = "clearDebugBtn";
-        btn.innerText = "Clear Log";
+        btn.innerText = "Hapus Log";
         btn.style.position = "fixed";
         btn.style.bottom = "220px"; // tepat di atas box
         btn.style.right = "10px";
