@@ -937,6 +937,7 @@ async function loadDatabaseFromIndexedDB() {
 }
 
 function showDebugMessage(msg) {
+    // Buat debug box jika belum ada
     let box = document.getElementById("debugBox");
     if (!box) {
         box = document.createElement("div");
@@ -944,19 +945,46 @@ function showDebugMessage(msg) {
         box.style.position = "fixed";
         box.style.bottom = "10px";
         box.style.right = "10px";
-        box.style.maxWidth = "320px";
-        box.style.background = "rgba(0,0,0,0.8)";
-        box.style.color = "white";
-        box.style.fontSize = "14px";
+        box.style.width = "350px";
+        box.style.height = "200px";
+        box.style.background = "rgba(0,0,0,0.85)";
+        box.style.color = "#00FFEA";
+        box.style.fontSize = "13px";
         box.style.padding = "10px";
         box.style.borderRadius = "8px";
         box.style.zIndex = "999999";
+        box.style.overflowY = "auto";
         box.style.fontFamily = "monospace";
         document.body.appendChild(box);
     }
-    box.innerHTML = msg;
-    setTimeout(() => box.remove(), 5000); // auto hilang 5 detik
+
+    // Tambahkan teks baru di bawah (tidak menimpa yang lama)
+    let time = new Date().toLocaleTimeString();
+    box.innerHTML += `[${time}] ${msg}<br>`;
+
+    // Buat tombol clear log hanya sekali
+    if (!document.getElementById("clearDebugBtn")) {
+        let btn = document.createElement("button");
+        btn.id = "clearDebugBtn";
+        btn.innerText = "Clear Log";
+        btn.style.position = "fixed";
+        btn.style.bottom = "220px"; // tepat di atas box
+        btn.style.right = "10px";
+        btn.style.padding = "6px 12px";
+        btn.style.border = "none";
+        btn.style.background = "#ff0048";
+        btn.style.color = "white";
+        btn.style.borderRadius = "6px";
+        btn.style.cursor = "pointer";
+        btn.style.zIndex = "999999";
+        btn.onclick = () => {
+            box.innerHTML = "";  // hapus isi log, box tetap ada
+            showDebugMessage("Log sudah dibersihkan"); // tampilkan 1 pesan setelah clear
+        };
+        document.body.appendChild(btn);
+    }
 }
+
 
 //////////////////////////////////
 // Fungsi toggle yang sudah ada, dimodifikasi agar independen (tidak menutup yang lain)
