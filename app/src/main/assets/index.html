@@ -310,6 +310,15 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 }); */
+    async function safeRun(stepName, fn) {
+  try {
+    await fn();
+    showDebugMessage("✅ Selesai: " + stepName);
+  } catch (err) {
+    showDebugMessage("❌ ERROR di tahap " + stepName + ": " + err);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 
    // 🔹 Dibaca dari database saat init — fallback ke 1 jika tidak ada data
