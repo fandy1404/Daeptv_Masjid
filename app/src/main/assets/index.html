@@ -329,42 +329,74 @@ const maxZoom = 2;
 
 // Terapkan zoom pertama kali
 applyZoom(zoomLevel);
+    async function loadZoomFromDB() {
+    try {
+        if (!db) throw new Error("SQLite belum siap");
 
-// 🔥 Simpan zoom ke SQLite + update settings in-memory
+        db.get("SELECT zoom FROM zoom_settings WHERE id = 1", [], (err, row) => {
+            if (row?.zoom) {
+                zoomLevel = row.zoom;
+                settings.zoomLevel = row.zoom;
+                applyZoom(row.zoom);
+                showDebugMessage("🔎 Zoom dipulihkan: " + row.zoom);
+            }
+        });
+    } catch (e) {
+        showDebugMessage("⚠ Gagal memuat zoom: " + e.message);
+    }
+}
+
+    await loadZoomFromDB();
+
 async function saveZoomToDB() {
     try {
+        if (!db) throw new Error("Database SQLite belum siap");
+
+        // Pastikan tabel ada
+        db.run(
+            "CREATE TABLE IF NOT EXISTS zoom_settings (id INTEGER PRIMARY KEY, zoom REAL)"
+        );
+
         db.run(
             "INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)",
             [zoomLevel]
         );
-        // ⬅ simpan juga ke settings untuk mencegah tampilan kembali default sebelum reload
-        settings.zoomLevel = zoomLevel; 
-        await saveDatabaseToIndexedDB();
-        console.log("Zoom tersimpan:", zoomLevel);
-         showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
+
+        // Simpan juga ke settings agar tidak revert sebelum reload
+        settings.zoomLevel = zoomLevel;
+
+        await saveDatabaseToIndexedDB(); // untuk persist ke local storage / IndexedDB
+
+        showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
     } catch (e) {
-        console.error("Gagal menyimpan zoom:", e);
-        showDebugMessage("❌ Zoom gagal disimpan");
+        showDebugMessage("❌ Zoom gagal disimpan: " + e.message);
     }
 }
 
-// 🔹 Event tombol zoom in
+async function safe(action, fn) {
+    try {
+        await fn();
+    } catch (e) {
+        showDebugMessage("❌ Error di " + action + ": " + e.message);
+    }
+}
+
 document.getElementById('zoom-in').addEventListener('click', async function () {
     if (zoomLevel < maxZoom) {
         zoomLevel = Math.min(maxZoom, zoomLevel + step);
         applyZoom(zoomLevel);
-        await saveZoomToDB();
+        await safe("saveZoomToDB (zoom in)", saveZoomToDB);
     }
 });
 
-// 🔹 Event tombol zoom out
 document.getElementById('zoom-out').addEventListener('click', async function () {
     if (zoomLevel > minZoom) {
         zoomLevel = Math.max(minZoom, zoomLevel - step);
         applyZoom(zoomLevel);
-        await saveZoomToDB();
+        await safe("saveZoomToDB (zoom out)", saveZoomToDB);
     }
 });
+
 
 // 🔹 Fullscreen
 document.getElementById('fullscreen').addEventListener('click', function () {
