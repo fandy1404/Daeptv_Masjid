@@ -269,51 +269,6 @@ function tryLoadMedia() {
 document.addEventListener('DOMContentLoaded', function(){
   tryLoadMedia();
 });
-// ===========================================================
-// DEBUG PANEL PERMANEN
-// ===========================================================
-function showDebugMessage(msg) {
-    let box = document.getElementById("debugBox");
-    if (!box) {
-        box = document.createElement("div");
-        box.id = "debugBox";
-        box.style.position = "fixed";
-        box.style.bottom = "10px";
-        box.style.right = "10px";
-        box.style.width = "360px";
-        box.style.height = "200px";
-        box.style.background = "rgba(0,0,0,0.85)";
-        box.style.color = "#00FFEA";
-        box.style.fontSize = "12px";
-        box.style.padding = "10px";
-        box.style.borderRadius = "6px";
-        box.style.zIndex = "999999";
-        box.style.fontFamily = "monospace";
-        box.style.overflowY = "auto";
-        document.body.appendChild(box);
-    }
-    let time = new Date().toLocaleTimeString();
-    box.innerHTML += `[${time}] ${msg}<br>`;
-}
-
-// Tombol clear log
-if (!document.getElementById("clearDebugBtn")) {
-    const btn = document.createElement("button");
-    btn.id = "clearDebugBtn";
-    btn.textContent = "Clear Log";
-    btn.style.position = "fixed";
-    btn.style.bottom = "220px";
-    btn.style.right = "10px";
-    btn.style.background = "#ff0048";
-    btn.style.color = "white";
-    btn.style.border = "none";
-    btn.style.padding = "6px 12px";
-    btn.style.borderRadius = "4px";
-    btn.style.cursor = "pointer";
-    btn.style.zIndex = "999999";
-    btn.onclick = () => document.getElementById("debugBox").innerHTML = "";
-    document.body.appendChild(btn);
-}
 
 async function safeRun(stepName, fn) {
   try {
