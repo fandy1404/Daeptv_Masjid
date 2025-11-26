@@ -818,59 +818,44 @@ async function loadSettings() {
 async function saveDatabaseToIndexedDB() {
     return new Promise((resolve, reject) => {
         try {
-            const exported = db.export();
+            if (!window.db || typeof window.db.export !== 'function') {
+                showDebugMessage("⚠ db SQLite belum siap saat saveDatabaseToIndexedDB");
+                return resolve();
+            }
 
-            console.log("[DEBUG] DB size:", exported.length);
+            const binary = db.export(); // buffer SQLite
+            const blob = new Blob([binary]);
 
-            const blob = new Blob([exported], { type: "application/octet-stream" });
-            const request = indexedDB.open('PrayerMonitorDB', 1);
+            const request = indexedDB.open("AppDatabase", 1);
 
-            request.onupgradeneeded = function(event) {
-                const dbidb = event.target.result;
-                if (!dbidb.objectStoreNames.contains('sqliteDB')) {
-                    dbidb.createObjectStore('sqliteDB');
-                    console.log("[DEBUG] ObjectStore 'sqliteDB' dibuat");
+            request.onupgradeneeded = function(e) {
+                const dbIDB = e.target.result;
+                if (!dbIDB.objectStoreNames.contains("sqlite")) {
+                    dbIDB.createObjectStore("sqlite");
                 }
             };
 
-            request.onsuccess = function(event) {
-                const idb = event.target.result;
-                const tx = idb.transaction(['sqliteDB'], 'readwrite');
-                const store = tx.objectStore('sqliteDB');
-                const putRequest = store.put(blob, 'database');
-
-                putRequest.onsuccess = function() {
-                    console.log("[DEBUG] PUT database sukses disimpan ke IndexedDB");
-                };
-
-                putRequest.onerror = function(e) {
-                    console.error("[ERROR] PUT database gagal:", e.target.error);
-                    showDebugMessage("❌ Database gagal disimpan: " + e.target.error);
-                    reject(e.target.error);
-                };
-
+            request.onsuccess = function(e) {
+                const dbIDB = e.target.result;
+                const tx = dbIDB.transaction("sqlite", "readwrite");
+                tx.objectStore("sqlite").put(blob, "main");
                 tx.oncomplete = () => {
-                    idb.close();
-                    console.log("[DEBUG] Transaction selesai");
-                    showDebugMessage("✔ Database berhasil disimpan");
+                    showDebugMessage("💾 IndexedDB: SQLite berhasil disimpan");
                     resolve();
                 };
-
-                tx.onerror = function(e) {
-                    console.error("[ERROR] Transaction error:", e.target.error);
-                    showDebugMessage("❌ Transaksi DB gagal: " + e.target.error);
-                    reject(e.target.error);
+                tx.onerror = () => {
+                    showDebugMessage("❌ IndexedDB tx error saat menyimpan SQLite");
+                    reject(tx.error);
                 };
             };
 
-            request.onerror = function(event) {
-                console.error("[ERROR] IndexedDB open gagal:", event.target.error);
-                showDebugMessage("❌ IndexedDB tidak dapat dibuka: " + event.target.error);
-                reject(event.target.error);
+            request.onerror = function(e) {
+                showDebugMessage("❌ IndexedDB request error: " + e.target.error);
+                reject(e.target.error);
             };
+
         } catch (err) {
-            console.error("[FATAL ERROR] saveDatabaseToIndexedDB:", err);
-            showDebugMessage("⛔ Error fatal: " + err.message);
+            showDebugMessage("❌ saveDatabaseToIndexedDB exception: " + err);
             reject(err);
         }
     });
@@ -879,67 +864,47 @@ async function saveDatabaseToIndexedDB() {
 // Fungsi untuk memuat database dari IndexedDB
 async function loadDatabaseFromIndexedDB() {
     return new Promise((resolve) => {
-        const request = indexedDB.open('PrayerMonitorDB', 1);
+        const request = indexedDB.open("AppDatabase", 1);
 
-        request.onupgradeneeded = function(event) {
-            const dbx = event.target.result;
-            if (!dbx.objectStoreNames.contains('sqliteDB')) {
-                dbx.createObjectStore('sqliteDB');
+        request.onupgradeneeded = function(e) {
+            const dbIDB = e.target.result;
+            if (!dbIDB.objectStoreNames.contains("sqlite")) {
+                dbIDB.createObjectStore("sqlite");
             }
         };
 
-        request.onsuccess = function(event) {
-            const idb = event.target.result;
-            const tx = idb.transaction(['sqliteDB'], 'readonly');
-            const store = tx.objectStore('sqliteDB');
-            const getReq = store.get('database');
+        request.onsuccess = async function(e) {
+            const dbIDB = e.target.result;
 
-            getReq.onsuccess = async function() {
-                const result = getReq.result;
+            const tx = dbIDB.transaction("sqlite", "readonly");
+            const getReq = tx.objectStore("sqlite").get("main");
 
-                if (!result) {
-                    // ⬅ DB pertama kali dibuat
-                    db = new SQL.Database();
-                    await initDatabase(); // buat tabel + insert row default
-                    await saveDatabaseToIndexedDB();
-                    idb.close();
-                    resolve();
-                    return;
+            getReq.onsuccess = async () => {
+                const blob = getReq.result;
+                if (!blob) {
+                    showDebugMessage("⚠ Tidak ada database SQLite di IndexedDB");
+                    return resolve();
                 }
 
-                // ⬅ DB sudah ada → load buffer
-                result.arrayBuffer()
-                    .then(async buffer => {
-                        db = new SQL.Database(new Uint8Array(buffer));
-                        await initDatabase(); // cek migrasi
-                        idb.close();
-                        resolve();
-                    })
-                    .catch(async err => {
-                        console.error('SQLite buffer error:', err);
-                        db = new SQL.Database(); // fallback DB baru
-                        await initDatabase();
-                        await saveDatabaseToIndexedDB();
-                        idb.close();
-                        resolve();
-                    });
+                const buffer = await blob.arrayBuffer();
+                await db.import(new Uint8Array(buffer));
+                showDebugMessage("📥 Database SQLite berhasil dimuat dari IndexedDB");
+                resolve();
             };
 
-            getReq.onerror = function(event) {
-                console.error('Error load record:', event.target.error);
-                db = new SQL.Database();
-                idb.close();
+            getReq.onerror = () => {
+                showDebugMessage("❌ Gagal membaca blob SQLite dari IndexedDB");
                 resolve();
             };
         };
 
-        request.onerror = function(event) {
-            console.error('IndexedDB open error:', event.target.error);
-            db = new SQL.Database();
+        request.onerror = function() {
+            showDebugMessage("❌ IndexedDB open error saat load");
             resolve();
         };
     });
 }
+
 
 /*function showDebugMessage(msg) {
     // Buat debug box jika belum ada
