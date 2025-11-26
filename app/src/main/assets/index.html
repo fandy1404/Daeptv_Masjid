@@ -65,59 +65,59 @@
   <script>
 /* Robust debug initializer — letakkan ini paling awal */
 (function initDebug() {
-    if (window._debugInitialized) return;
-    window._debugInitialized = true;
+    if (window._debugInit) return;
+    window._debugInit = true;
 
     let hideTimer = null;
 
-    // === Create debug box ===
-    function createBox() {
+    // ============== BUAT DEBUG BOX ==================
+    function ensureDebugBox() {
         let box = document.getElementById("debugBox");
         if (!box) {
             box = document.createElement("div");
             box.id = "debugBox";
             box.style.position = "fixed";
-            box.style.bottom = "60px";      // tidak menutupi tombol UI
+            box.style.bottom = "60px";
             box.style.right = "10px";
             box.style.width = "350px";
-            box.style.height = "180px";
+            box.style.height = "200px";
             box.style.background = "rgba(0,0,0,0.85)";
-            box.style.color = "#00FFEA";
+            box.style.color = "#00FFD0";
             box.style.fontSize = "12px";
             box.style.padding = "10px";
             box.style.borderRadius = "8px";
             box.style.zIndex = "999999";
             box.style.overflowY = "auto";
             box.style.fontFamily = "monospace";
-            box.style.display = "none";     // HIDDEN default
+            box.style.display = "none";   // default tersembunyi
             document.body.appendChild(box);
 
-            // Clear button inside
-            const clearBtn = document.createElement("button");
-            clearBtn.innerText = "Hapus Log";
-            clearBtn.style.position = "absolute";
-            clearBtn.style.top = "-35px";
-            clearBtn.style.right = "0";
-            clearBtn.style.padding = "5px 10px";
-            clearBtn.style.background = "#ff0048";
-            clearBtn.style.color = "#fff";
-            clearBtn.style.border = "none";
-            clearBtn.style.borderRadius = "6px";
-            clearBtn.style.cursor = "pointer";
-            clearBtn.style.zIndex = "1000000";
+            // Hapus Log
+            const clear = document.createElement("button");
+            clear.innerText = "Hapus Log";
+            clear.style.position = "absolute";
+            clear.style.top = "-35px";
+            clear.style.right = "0";
+            clear.style.padding = "5px 10px";
+            clear.style.background = "#ff0048";
+            clear.style.color = "white";
+            clear.style.border = "none";
+            clear.style.borderRadius = "6px";
+            clear.style.cursor = "pointer";
+            clear.style.zIndex = "1000000";
 
-            clearBtn.onclick = () => {
+            clear.onclick = () => {
                 box.innerHTML = "";
                 showDebugMessage("Log dibersihkan");
             };
 
-            box.appendChild(clearBtn);
+            box.appendChild(clear);
         }
         return box;
     }
 
-    // === Floating toggle button ===
-    function createToggle() {
+    // ============ TOMBOL TOGGLE DEBUG ================
+    function ensureToggleButton() {
         if (document.getElementById("debugToggleBtn")) return;
 
         const btn = document.createElement("button");
@@ -127,7 +127,7 @@
         btn.style.bottom = "10px";
         btn.style.right = "10px";
         btn.style.padding = "6px 14px";
-        btn.style.background = "#008cff";
+        btn.style.background = "#0095ff";
         btn.style.color = "#fff";
         btn.style.border = "none";
         btn.style.borderRadius = "8px";
@@ -135,74 +135,50 @@
         btn.style.zIndex = "999999";
 
         btn.onclick = () => {
-            const box = createBox();
-            box.style.display = (box.style.display === "none") ? "block" : "none";
+            const box = ensureDebugBox();
+            box.style.display = (box.style.display === "none" ? "block" : "none");
         };
 
         document.body.appendChild(btn);
     }
 
-    // === Replace global showDebugMessage ===
-    window.showDebugMessage = function(msg) {
-        const box = createBox();
+    // =============== FUNGSIONALITAS DEBUG ================
+    window.showDebugMessage = function (msg) {
+        const box = ensureDebugBox();
         const time = new Date().toLocaleTimeString();
-        console.log(`[DEBUG ${time}] ${msg}`);
 
         const line = document.createElement("div");
         line.innerHTML = `[${time}] ${msg}`;
         box.appendChild(line);
 
-        // show it
+        // selalu tampil jika ada error atau pesan penting
         box.style.display = "block";
 
-        // reset auto-hide timer
-        if (hideTimer) clearTimeout(hideTimer);
+        // auto hide jika BUKAN error
+        if (!msg.startsWith("❌") && !msg.startsWith("⚠")) {
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = setTimeout(() => {
+                box.style.display = "none";
+            }, 6000);
+        }
 
-        hideTimer = setTimeout(() => {
-            box.style.display = "none";
-        }, 7000); // hide 7 seconds after last message
+        console.log("[DEBUG]", msg);
     };
 
-    // global JS error listener
-    window.onerror = (msg, src, line, col) => {
+    // =============== ERROR GLOBAL ===============
+    window.onerror = function (msg, src, line, col, err) {
         showDebugMessage(`❌ JS ERROR: ${msg} (${line}:${col})`);
     };
 
     window.addEventListener("unhandledrejection", e => {
-        showDebugMessage(`❌ Unhandled Rejection: ${e.reason}`);
+        showDebugMessage(`❌ Promise Error: ${e.reason}`);
     });
 
-    // ready indicator
-    createToggle();
-    showDebugMessage("🔧 Debug aktif");
+    // ==== Inisialisasi selesai ====
+    ensureToggleButton();
+    showDebugMessage("🔧 Debug aktif dan siap");
 })();
 
-</script>
-
-    <script>
-/* ⬇⬇ LETAKKAN DI SINI — paling atas */
-function setText(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-}
-
-function setBlobToElement(id, data, mime = "") {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const blob = new Blob([data], { type: mime || "application/octet-stream" });
-    el.src = URL.createObjectURL(blob);
-}
-        
-window.onAndroidCallback = function(event, success, error) {
-    console.log("ANDROID CALLBACK →", event, success, error);
-    const box = document.getElementById("debugBox");
-    if (!box) return;
-
-    box.innerHTML += `<div style="color:${success ? 'green':'red'}">
-        <b>${event}</b> → ${success ? 'BERHASIL' : 'GAGAL'} 
-        ${error ? "<br>Error: " + error : ""}
-    </div>`;
-};
 
 /* ⬇ lalu init dan window.onload */
 //window.onload = async function () {
