@@ -121,13 +121,28 @@ window.addEventListener('load', async () => {
 
   // ensure intervals use safeRun wrappers so an exception in a tick won't kill them
   window.__intervals = window.__intervals || [];
-  if (typeof updateClock === 'function') window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
-  if (typeof updateCountdowns === 'function') window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
-  if (typeof updateDates === 'function') window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
+ // if (typeof updateClock === 'function') window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
+ // if (typeof updateCountdowns === 'function') window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
+ // if (typeof updateDates === 'function') window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
+window.__intervals.push(setInterval(() => safeRunQuiet("updateClock", updateClock), 1000));
+window.__intervals.push(setInterval(() => safeRunQuiet("updateCountdowns", updateCountdowns), 1000));
+window.__intervals.push(setInterval(() => safeRunQuiet("updateDates", updateDates), 60000));
 
   showDebugMessage("🚀 Aplikasi siap digunakan (safe init)");
 });
 // --- PASTE END ---
+// SAFE RUN QUIET — hanya tampil jika ERROR
+async function safeRunQuiet(stepName, fn) {
+  try {
+    const result = fn();
+    if (result && typeof result.then === "function") {
+      await result;
+    }
+    // Tidak ada showDebugMessage di sini
+  } catch (err) {
+    showDebugMessage(`❌ ERROR di ${stepName}: ${err?.message || err}`);
+  }
+}
 
 
 // Clock function
