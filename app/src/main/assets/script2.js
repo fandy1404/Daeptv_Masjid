@@ -669,6 +669,29 @@ async function saveAdminSettings() {
   btn.disabled = false;
 }
 
+function saveFileToIndexedDB(key, uint8) {
+  return new Promise((resolve) => {
+    const req = indexedDB.open("AppFilesDB", 1);
+
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("files")) {
+        db.createObjectStore("files");
+      }
+    };
+
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction("files", "readwrite");
+      tx.objectStore("files").put(uint8, key);
+
+      tx.oncomplete = () => {
+        showDebugMessage("💾 File disimpan: " + key);
+        resolve();
+      };
+    };
+  });
+}
 
 // Fungsi untuk inisialisasi database
 async function initDatabase() {
