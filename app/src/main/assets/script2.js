@@ -705,7 +705,7 @@ async function initDatabase() {
         db = new SQL.Database();
         showDebugMessage("🟩 SQL.js & SQLite siap");
         // 2. Restore isi database dari IndexedDB
-        await loadDatabaseFromIndexedDB();
+        //await loadDatabaseFromIndexedDB();
 
         // 3. Pastikan tabel tersedia
         db.run(`
