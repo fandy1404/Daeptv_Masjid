@@ -663,57 +663,60 @@ async function saveAdminSettings() {
 
 // Fungsi untuk inisialisasi database
 async function initDatabase() {
-    return new Promise(async (resolve) => {
-        try {
-            await loadDatabaseFromIndexedDB(); // ⬅ load SQLite dari IndexedDB dulu, baru cek tabel
+    showDebugMessage("📦 Memuat SQL.js...");
 
-            console.log("Database loaded, checking migration...");
+    try {
+        // 1. Load WASM + SQL.js
+        SQL = await initSqlJs({
+            locateFile: file => "file:///android_asset/" + file
+        });
 
-            // Buat tabel settings jika belum ada
+        db = new SQL.Database();
+        showDebugMessage("🟩 SQL.js & SQLite siap");
+
+        // 2. Restore isi database dari IndexedDB
+        await loadDatabaseFromIndexedDB();
+
+        // 3. Pastikan tabel tersedia
+        db.run(`
+            CREATE TABLE IF NOT EXISTS settings (
+                id INTEGER PRIMARY KEY,
+                mosque_name TEXT DEFAULT '',
+                hero_image TEXT DEFAULT NULL,
+                video_quran TEXT DEFAULT NULL,
+                video_kajian TEXT DEFAULT NULL,
+                last_update INTEGER DEFAULT 0
+            );
+        `);
+
+        // 4. Cek apakah sudah ada data awal
+        const check = db.exec("SELECT COUNT(*) FROM settings");
+
+        if (check.length === 0 || check[0].values[0][0] === 0) {
             db.run(`
-                CREATE TABLE IF NOT EXISTS settings (
-                    id INTEGER PRIMARY KEY,
-                    mosque_name TEXT DEFAULT '',
-                    hero_image TEXT DEFAULT NULL,
-                    video_quran TEXT DEFAULT NULL,
-                    video_kajian TEXT DEFAULT NULL,
-                    last_update INTEGER DEFAULT 0
-                );
+                INSERT INTO settings (id, mosque_name, last_update)
+                VALUES (1, '', strftime('%s','now'));
             `);
 
-            // Jika user pertama kali (belum ada row)
-            const check = db.exec("SELECT COUNT(*) AS total FROM settings");
-            if (check[0].values[0][0] === 0) {
-                db.run(`
-                    INSERT INTO settings (id, mosque_name, hero_image, video_quran, video_kajian, last_update)
-                    VALUES (1, '', NULL, NULL, NULL, strftime('%s','now'));
-                `);
-                console.log("⚡ DB initialized first time — row inserted");
-                await saveDatabaseToIndexedDB();
-                resolve();
-                return;
-            }
-
-            // Jika user lama — lakukan migrasi kolom
-            const tableInfo = db.exec("PRAGMA table_info(settings)");
-            const cols = tableInfo[0].values.map(c => c[1]);
-
-            if (!cols.includes("hero_image")) db.run(`ALTER TABLE settings ADD COLUMN hero_image TEXT DEFAULT NULL`);
-            if (!cols.includes("video_quran")) db.run(`ALTER TABLE settings ADD COLUMN video_quran TEXT DEFAULT NULL`);
-            if (!cols.includes("video_kajian")) db.run(`ALTER TABLE settings ADD COLUMN video_kajian TEXT DEFAULT NULL`);
-            if (!cols.includes("last_update")) db.run(`ALTER TABLE settings ADD COLUMN last_update INTEGER DEFAULT 0`);
-
-            console.log("⚡ Migration check done — no data removed");
-
-            // Simpan setelah migrasi
+            showDebugMessage("⚡ DB dibuat pertama kali");
             await saveDatabaseToIndexedDB();
-
-            resolve();
-        } catch (e) {
-            console.error("❌ initDatabase error:", e);
-            resolve();
+            return;
         }
-    });
+
+        // 5. Cek kolom apakah perlu migrasi
+        const columns = db.exec("PRAGMA table_info(settings)")[0].values.map(c => c[1]);
+
+        if (!columns.includes("hero_image")) db.run(`ALTER TABLE settings ADD COLUMN hero_image TEXT DEFAULT NULL;`);
+        if (!columns.includes("video_quran")) db.run(`ALTER TABLE settings ADD COLUMN video_quran TEXT DEFAULT NULL;`);
+        if (!columns.includes("video_kajian")) db.run(`ALTER TABLE settings ADD COLUMN video_kajian TEXT DEFAULT NULL;`);
+        if (!columns.includes("last_update")) db.run(`ALTER TABLE settings ADD COLUMN last_update INTEGER DEFAULT 0;`);
+
+        showDebugMessage("🔧 Migrasi database selesai");
+        await saveDatabaseToIndexedDB();
+
+    } catch (e) {
+        showDebugMessage("❌ initDatabase ERROR: " + e.message);
+    }
 }
 
 
@@ -839,94 +842,97 @@ async function loadSettings() {
 
 // Fungsi untuk menyimpan database ke IndexedDB
 async function saveDatabaseToIndexedDB() {
-    return new Promise((resolve, reject) => {
-        try {
-            if (!window.db || typeof window.db.export !== 'function') {
-                showDebugMessage("⚠ db SQLite belum siap saat saveDatabaseToIndexedDB");
-                return resolve();
-            }
+    return new Promise(resolve => {
 
-            const binary = db.export(); // buffer SQLite
-            const blob = new Blob([binary]);
-
-            const request = indexedDB.open("AppDatabase", 1);
-
-            request.onupgradeneeded = function(e) {
-                const dbIDB = e.target.result;
-                if (!dbIDB.objectStoreNames.contains("sqlite")) {
-                    dbIDB.createObjectStore("sqlite");
-                }
-            };
-
-            request.onsuccess = function(e) {
-                const dbIDB = e.target.result;
-                const tx = dbIDB.transaction("sqlite", "readwrite");
-                tx.objectStore("sqlite").put(blob, "main");
-                tx.oncomplete = () => {
-                    showDebugMessage("💾 IndexedDB: SQLite berhasil disimpan");
-                    resolve();
-                };
-                tx.onerror = () => {
-                    showDebugMessage("❌ IndexedDB tx error saat menyimpan SQLite");
-                    reject(tx.error);
-                };
-            };
-
-            request.onerror = function(e) {
-                showDebugMessage("❌ IndexedDB request error: " + e.target.error);
-                reject(e.target.error);
-            };
-
-        } catch (err) {
-            showDebugMessage("❌ saveDatabaseToIndexedDB exception: " + err);
-            reject(err);
+        if (!db || typeof db.export !== "function") {
+            showDebugMessage("⚠ DB belum siap, skip save");
+            return resolve();
         }
-    });
-}
 
-// Fungsi untuk memuat database dari IndexedDB
-async function loadDatabaseFromIndexedDB() {
-    return new Promise((resolve) => {
+        // Export DB → Uint8Array
+        const binaryArray = db.export();
+
         const request = indexedDB.open("AppDatabase", 1);
 
-        request.onupgradeneeded = function(e) {
-            const dbIDB = e.target.result;
-            if (!dbIDB.objectStoreNames.contains("sqlite")) {
-                dbIDB.createObjectStore("sqlite");
+        request.onupgradeneeded = e => {
+            const idb = e.target.result;
+            if (!idb.objectStoreNames.contains("sqlite")) {
+                idb.createObjectStore("sqlite");
             }
         };
 
-        request.onsuccess = async function(e) {
-            const dbIDB = e.target.result;
+        request.onsuccess = e => {
+            const idb = e.target.result;
+            const tx = idb.transaction("sqlite", "readwrite");
+            const store = tx.objectStore("sqlite");
 
-            const tx = dbIDB.transaction("sqlite", "readonly");
-            const getReq = tx.objectStore("sqlite").get("main");
+            // Simpan langsung Uint8Array → lebih aman dan ringan
+            store.put(binaryArray, "main");
 
-            getReq.onsuccess = async () => {
-                const blob = getReq.result;
-                if (!blob) {
-                    showDebugMessage("⚠ Tidak ada database SQLite di IndexedDB");
-                    return resolve();
-                }
-
-                const buffer = await blob.arrayBuffer();
-                await db.import(new Uint8Array(buffer));
-                showDebugMessage("📥 Database SQLite berhasil dimuat dari IndexedDB");
+            tx.oncomplete = () => {
+                showDebugMessage("💾 DB saved ke IndexedDB (OK)");
                 resolve();
             };
 
-            getReq.onerror = () => {
-                showDebugMessage("❌ Gagal membaca blob SQLite dari IndexedDB");
-                resolve();
+            tx.onerror = () => {
+                showDebugMessage("❌ IndexedDB tx error saat simpan");
+                resolve(); // jangan reject — supaya tidak menghentikan app
             };
         };
 
-        request.onerror = function() {
-            showDebugMessage("❌ IndexedDB open error saat load");
+        request.onerror = e => {
+            showDebugMessage("❌ IndexedDB open error saat save");
             resolve();
         };
     });
 }
+
+
+// Fungsi untuk memuat database dari IndexedDB
+async function loadDatabaseFromIndexedDB() {
+    return new Promise(resolve => {
+        const request = indexedDB.open("AppDatabase", 1);
+
+        request.onupgradeneeded = e => {
+            const idb = e.target.result;
+            if (!idb.objectStoreNames.contains("sqlite")) {
+                idb.createObjectStore("sqlite");
+            }
+        };
+
+        request.onsuccess = e => {
+            const idb = e.target.result;
+            const tx = idb.transaction("sqlite", "readonly");
+            const store = tx.objectStore("sqlite");
+            const getReq = store.get("main");
+
+            getReq.onsuccess = async () => {
+                const blob = getReq.result;
+
+                if (!blob) {
+                    showDebugMessage("⚠ DB di IndexedDB kosong (first run)");
+                    return resolve();
+                }
+
+                const buffer = await blob.arrayBuffer();
+                db = new SQL.Database(new Uint8Array(buffer));
+                showDebugMessage("📥 DB berhasil dimuat dari IndexedDB");
+                resolve();
+            };
+
+            getReq.onerror = () => {
+                showDebugMessage("❌ Load blob SQLite gagal");
+                resolve();
+            };
+        };
+
+        request.onerror = () => {
+            showDebugMessage("❌ IndexedDB gagal dibuka");
+            resolve();
+        };
+    });
+}
+
 
 
 /*function showDebugMessage(msg) {
