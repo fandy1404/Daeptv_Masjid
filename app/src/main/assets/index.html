@@ -65,89 +65,118 @@
   <script>
 /* Robust debug initializer — letakkan ini paling awal */
 (function initDebug() {
-  // Ensure there is only one showDebugMessage
-  if (window._debugInitialized) return;
-  window._debugInitialized = true;
+    if (window._debugInitialized) return;
+    window._debugInitialized = true;
 
-  function createBox() {
-    let box = document.getElementById("debugBox");
-    if (!box) {
-      box = document.createElement("div");
-      box.id = "debugBox";
-      box.style.position = "fixed";
-      box.style.bottom = "10px";
-      box.style.right = "10px";
-      box.style.width = "360px";
-      box.style.height = "180px";
-      box.style.background = "rgba(0,0,0,0.85)";
-      box.style.color = "#00FFEA";
-      box.style.fontSize = "12px";
-      box.style.padding = "10px";
-      box.style.borderRadius = "8px";
-      box.style.zIndex = "999999";
-      box.style.overflowY = "auto";
-      box.style.fontFamily = "monospace";
-      document.body.appendChild(box);
+    let hideTimer = null;
+
+    // === Create debug box ===
+    function createBox() {
+        let box = document.getElementById("debugBox");
+        if (!box) {
+            box = document.createElement("div");
+            box.id = "debugBox";
+            box.style.position = "fixed";
+            box.style.bottom = "60px";      // tidak menutupi tombol UI
+            box.style.right = "10px";
+            box.style.width = "350px";
+            box.style.height = "180px";
+            box.style.background = "rgba(0,0,0,0.85)";
+            box.style.color = "#00FFEA";
+            box.style.fontSize = "12px";
+            box.style.padding = "10px";
+            box.style.borderRadius = "8px";
+            box.style.zIndex = "999999";
+            box.style.overflowY = "auto";
+            box.style.fontFamily = "monospace";
+            box.style.display = "none";     // HIDDEN default
+            document.body.appendChild(box);
+
+            // Clear button inside
+            const clearBtn = document.createElement("button");
+            clearBtn.innerText = "Hapus Log";
+            clearBtn.style.position = "absolute";
+            clearBtn.style.top = "-35px";
+            clearBtn.style.right = "0";
+            clearBtn.style.padding = "5px 10px";
+            clearBtn.style.background = "#ff0048";
+            clearBtn.style.color = "#fff";
+            clearBtn.style.border = "none";
+            clearBtn.style.borderRadius = "6px";
+            clearBtn.style.cursor = "pointer";
+            clearBtn.style.zIndex = "1000000";
+
+            clearBtn.onclick = () => {
+                box.innerHTML = "";
+                showDebugMessage("Log dibersihkan");
+            };
+
+            box.appendChild(clearBtn);
+        }
+        return box;
     }
-    return box;
-  }
 
-  window.showDebugMessage = function(msg) {
-    try {
-      const box = createBox();
-      const time = new Date().toLocaleTimeString();
-      // also log to console (fallback)
-      console.log(`[DEBUG ${time}] ${msg}`);
-      // prepend so newest on top (you can change to append if preferred)
-      const node = document.createElement('div');
-      node.innerHTML = `[${time}] ${msg}`;
-      box.insertBefore(node, box.firstChild);
-      // create clear button if not exists
-      if (!document.getElementById('clearDebugBtn')) {
-        const btn = document.createElement('button');
-        btn.id = 'clearDebugBtn';
-        btn.textContent = 'Hapus Log';
-        btn.style.position = 'fixed';
-        btn.style.bottom = '200px';
-        btn.style.right = '10px';
-        btn.style.padding = '6px 10px';
-        btn.style.background = '#ff0048';
-        btn.style.color = '#fff';
-        btn.style.border = 'none';
-        btn.style.borderRadius = '6px';
-        btn.style.zIndex = '999999';
-        btn.style.cursor = 'pointer';
-        btn.onclick = function() {
-          box.innerHTML = '';
-          console.log('[DEBUG] Log dibersihkan');
-          // keep one cleared message
-          const t = new Date().toLocaleTimeString();
-          const n = document.createElement('div');
-          n.innerHTML = `[${t}] Log sudah dibersihkan`;
-          box.appendChild(n);
+    // === Floating toggle button ===
+    function createToggle() {
+        if (document.getElementById("debugToggleBtn")) return;
+
+        const btn = document.createElement("button");
+        btn.id = "debugToggleBtn";
+        btn.innerText = "🐞 Debug";
+        btn.style.position = "fixed";
+        btn.style.bottom = "10px";
+        btn.style.right = "10px";
+        btn.style.padding = "6px 14px";
+        btn.style.background = "#008cff";
+        btn.style.color = "#fff";
+        btn.style.border = "none";
+        btn.style.borderRadius = "8px";
+        btn.style.cursor = "pointer";
+        btn.style.zIndex = "999999";
+
+        btn.onclick = () => {
+            const box = createBox();
+            box.style.display = (box.style.display === "none") ? "block" : "none";
         };
+
         document.body.appendChild(btn);
-      }
-    } catch (e) {
-      try { console.log("showDebugMessage failed:", e); } catch(_) {}
     }
-  };
 
-  // Global error handlers (tampilkan ke debug + console)
-  window.onerror = function(message, source, lineno, colno, error) {
-    const src = source || '<inline>';
-    const errMsg = `${message} (${src}:${lineno}:${colno})`;
-    window.showDebugMessage("❌ JS ERROR: " + errMsg);
-    // return false to let default handler run as well
-    return false;
-  };
-  window.addEventListener('unhandledrejection', function(e) {
-    window.showDebugMessage("❌ Unhandled Rejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
-  });
+    // === Replace global showDebugMessage ===
+    window.showDebugMessage = function(msg) {
+        const box = createBox();
+        const time = new Date().toLocaleTimeString();
+        console.log(`[DEBUG ${time}] ${msg}`);
 
-  // Immediately show that debug is ready (so we know createBox worked)
-  window.showDebugMessage("🔧 Debug ready");
+        const line = document.createElement("div");
+        line.innerHTML = `[${time}] ${msg}`;
+        box.appendChild(line);
+
+        // show it
+        box.style.display = "block";
+
+        // reset auto-hide timer
+        if (hideTimer) clearTimeout(hideTimer);
+
+        hideTimer = setTimeout(() => {
+            box.style.display = "none";
+        }, 7000); // hide 7 seconds after last message
+    };
+
+    // global JS error listener
+    window.onerror = (msg, src, line, col) => {
+        showDebugMessage(`❌ JS ERROR: ${msg} (${line}:${col})`);
+    };
+
+    window.addEventListener("unhandledrejection", e => {
+        showDebugMessage(`❌ Unhandled Rejection: ${e.reason}`);
+    });
+
+    // ready indicator
+    createToggle();
+    showDebugMessage("🔧 Debug aktif");
 })();
+
 </script>
 
     <script>
