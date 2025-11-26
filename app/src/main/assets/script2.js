@@ -69,7 +69,10 @@ window.addEventListener('load', async () => {
     if (typeof loadSettings === 'function') await loadSettings();
     else showDebugMessage("⚠ loadSettings() tidak ditemukan");
   });
-
+     await safeRun("loadAdminFormFromSettings", async () => {
+    if (typeof loadAdminFormFromSettings === 'function') await loadAdminFormFromSettings();
+    else showDebugMessage("⚠ loadAdminFormFromSettings() tidak ditemukan");
+  });
   // load zoom AFTER settings/db are ready
   await safeRun("loadZoomFromDB", async () => {
     if (typeof loadZoomFromDB === 'function') await loadZoomFromDB();
@@ -156,6 +159,44 @@ async function safeRunQuiet(stepName, fn) {
     const separator = seconds % 2 === 0 ? ':' : ' ';
     document.getElementById('clock').textContent = `${hours}${separator}${minutes}`;
 } */
+function loadAdminFormFromSettings() {
+    try {
+        // Masjid Name
+        const name = document.getElementById("inputMasjidName");
+        if (name) name.value = settings.masjidName ?? "";
+
+        // Masjid Address
+        const addr = document.getElementById("inputMasjidAddress");
+        if (addr) addr.value = settings.masjidAddress ?? "";
+
+        // Prayer Times
+        const pt = settings.prayerTimes ?? {};
+        const mapPT = {
+            inputSubuh: pt.subuh,
+            inputDzuhur: pt.dzuhur,
+            inputAshar: pt.ashar,
+            inputMaghrib: pt.maghrib,
+            inputIsya: pt.isya,
+            inputImsak: pt.imsak,
+            inputSyuruq: pt.syuruq
+        };
+
+        for (const id in mapPT) {
+            const el = document.getElementById(id);
+            if (el) el.value = mapPT[id] ?? "";
+        }
+
+        // Running Text
+        const rt = document.getElementById("inputRunningText");
+        if (rt) rt.value = settings.runningText ?? "";
+
+        showDebugMessage("📝 Admin panel terisi dari DB");
+
+    } catch (e) {
+        showDebugMessage("⚠ loadAdminFormFromSettings err: " + e.message);
+    }
+}
+
 function updateClock() {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
