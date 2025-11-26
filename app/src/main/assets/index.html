@@ -139,10 +139,19 @@
         btn.style.cursor = "pointer";
         btn.style.zIndex = "999999";
 
-        btn.onclick = () => {
+               btn.onclick = () => {
             const box = ensureDebugBox();
-            box.style.display = (box.style.display === "none" ? "block" : "none");
+            const clearBtn = document.getElementById("clearDebugBtn");
+        
+            if (box.style.display === "none") {
+                box.style.display = "block";
+                clearBtn.style.display = "block";
+            } else {
+                box.style.display = "none";
+                clearBtn.style.display = "none";
+            }
         };
+
 
         document.body.appendChild(btn);
     }
@@ -162,6 +171,7 @@
 
         // tampilkan box
         box.style.display = "block";
+        document.getElementById("clearDebugBtn").style.display = "block";
 
         // auto-hide hanya jika bukan error
         if (!msg.startsWith("❌") && !msg.startsWith("⚠")) {
