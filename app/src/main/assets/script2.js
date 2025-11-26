@@ -702,10 +702,8 @@ async function initDatabase() {
         SQL = await initSqlJs({
             locateFile: file => "file:///android_asset/" + file
         });
-
         db = new SQL.Database();
         showDebugMessage("🟩 SQL.js & SQLite siap");
-
         // 2. Restore isi database dari IndexedDB
         await loadDatabaseFromIndexedDB();
 
@@ -963,8 +961,18 @@ async function loadDatabaseFromIndexedDB() {
                     return resolve();
                 }
             
-                await db.import(uint8);
-                showDebugMessage("📥 Database SQLite berhasil dimuat");
+               // await db.import(uint8);
+                //showDebugMessage("📥 Database SQLite berhasil dimuat");
+               // resolve();
+               try {
+                        db = new SQL.Database(uint8);
+                        showDebugMessage("📥 Database SQLite berhasil dimuat (constructor)");
+                    } catch (e2) {
+                        showDebugMessage("❌ Gagal buat SQL.Database: " + e2.message);
+                    }
+                } catch (err) {
+                    showDebugMessage("❌ Error membaca DB dari IndexedDB: " + (err && err.message ? err.message : err));
+                }
                 resolve();
             };
             
