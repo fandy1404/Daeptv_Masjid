@@ -392,18 +392,18 @@ async function safeRun(stepName, fn) {
 }
 
 // Zoom persistence helpers (safe)
- //   function applyZoom(level) {
-  //  document.documentElement.style.fontSize = `${12 * level}px`;
-//}
+    function applyZoom(level) {
+    document.documentElement.style.fontSize = `${12 * level}px`;
+}
     /* -------------------------
       ZOOM CORE
 ------------------------- */
 let zoomLevel = 1;
 /* Terapkan zoom ke UI */
-function applyZoom(level) {
-    document.body.style.transform = `scale(${level})`;
+//function applyZoom(level) {
+   // document.body.style.transform = `scale(${level})`;
     //document.body.style.transformOrigin = "top left";
-}
+//}
 async function saveZoomToDB() {
     try {
         // simpan ke memory
