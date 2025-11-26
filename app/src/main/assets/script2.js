@@ -938,35 +938,47 @@ async function loadDatabaseFromIndexedDB() {
             const store = tx.objectStore("sqlite");
             const getReq = store.get("main");
 
-            getReq.onsuccess = async () => {
-                const blob = getReq.result;
-
-                if (!blob) {
-                    showDebugMessage("⚠ DB di IndexedDB kosong (first run)");
+           getReq.onsuccess = async () => {
+                let data = getReq.result;
+                if (!data) {
+                    showDebugMessage("⚠ Database SQLite kosong");
                     return resolve();
                 }
-
-                const buffer = await blob.arrayBuffer();
-                db = new SQL.Database(new Uint8Array(buffer));
-                showDebugMessage("📥 DB berhasil dimuat dari IndexedDB");
+                let uint8;
+                if (data instanceof Blob) {
+                    showDebugMessage("📦 DB ditemukan sebagai Blob");
+                    const buf = await data.arrayBuffer();
+                    uint8 = new Uint8Array(buf);
+                }
+                else if (data instanceof Uint8Array) {
+                    showDebugMessage("📦 DB ditemukan sebagai Uint8Array");
+                    uint8 = data;
+                }
+                else if (data instanceof ArrayBuffer) {
+                    showDebugMessage("📦 DB ditemukan sebagai ArrayBuffer");
+                    uint8 = new Uint8Array(data);
+                }
+                else {
+                    showDebugMessage("❌ Format DB tidak dikenal: " + typeof data);
+                    return resolve();
+                }
+            
+                await db.import(uint8);
+                showDebugMessage("📥 Database SQLite berhasil dimuat");
                 resolve();
             };
-
+            
             getReq.onerror = () => {
                 showDebugMessage("❌ Load blob SQLite gagal");
                 resolve();
             };
         };
-
         request.onerror = () => {
             showDebugMessage("❌ IndexedDB gagal dibuka");
             resolve();
         };
     });
 }
-
-
-
 /*function showDebugMessage(msg) {
     // Buat debug box jika belum ada
     let box = document.getElementById("debugBox");
