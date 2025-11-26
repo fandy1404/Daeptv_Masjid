@@ -965,9 +965,6 @@ async function loadDatabaseFromIndexedDB() {
                     } catch (e2) {
                         showDebugMessage("❌ Gagal buat SQL.Database: " + e2.message);
                     }
-                } catch (err) {
-                    showDebugMessage("❌ Error membaca DB dari IndexedDB: " + (err && err.message ? err.message : err));
-                }
                 resolve();
             };
             
