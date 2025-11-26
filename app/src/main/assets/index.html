@@ -395,9 +395,8 @@ async function safeRun(stepName, fn) {
     function applyZoom(level) {
     document.documentElement.style.fontSize = `${12 * level}px`;
 }
-  
+/*  
 let zoomLevel = 1;
-/* Terapkan zoom ke UI */
 //function applyZoom(level) {
    // document.body.style.transform = `scale(${level})`;
     //document.body.style.transformOrigin = "top left";
@@ -497,8 +496,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!document.fullscreenElement) document.documentElement.requestFullscreen();
         else document.exitFullscreen();
     });
-});
-/*
+}); */
+
 
 async function saveZoomToDB() {
   try {
@@ -585,7 +584,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-*/
 </script>
  <div class="ukuran">
         <div id="app-root"> 
