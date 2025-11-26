@@ -575,11 +575,14 @@ async function saveAdminSettings() {
   showDebugMessage("⏳ Mulai menyimpan pengaturan admin...");
 
   try {
-    // 1. Kumpulkan input
-    await safeRun("Kumpulkan input form", () => {
+    //-----------------------------------
+    // 1. KUMPULKAN SETTINGS
+    //-----------------------------------
+    await safeRun("Kumpulkan input", () => {
       settings = {
         masjidName: adminMasjidName.value,
         masjidAddress: adminMasjidAddress.value,
+
         prayerTimes: {
           subuh: adminSubuh.value,
           dzuhur: adminDzuhur.value,
@@ -589,11 +592,14 @@ async function saveAdminSettings() {
           imsak: adminImsak.value,
           syuruq: adminSyuruq.value
         },
+
         quote: {
           text: adminQuoteText.value,
           source: adminQuoteSource.value
         },
+
         runningText: adminRunningText.value,
+
         iqomahDelays: {
           subuh: parseInt(delaySubuh.value) || 0,
           dzuhur: parseInt(delayDzuhur.value) || 0,
@@ -604,62 +610,65 @@ async function saveAdminSettings() {
       };
     });
 
-    const isAndroid = typeof AndroidBridge !== "undefined";
-
-    // 2. Simpan file-file jika ada
-    await safeRun("Simpan gambar hero (jika ada)", async () => {
-      const hero = adminHeroImage.files[0];
-      if (hero && isAndroid) AndroidBridge.saveHeroBase64(await fileToBase64(hero));
-    });
-
-    await safeRun("Simpan audio (jika ada)", async () => {
-      const audio = adminAudio.files[0];
-      if (audio && isAndroid) AndroidBridge.saveAudioBase64(await fileToBase64(audio));
-    });
-
-    await safeRun("Simpan video Quran (jika ada)", async () => {
-      const quran = adminVideoQuran.files[0];
-      if (quran && isAndroid) AndroidBridge.saveVideoQuranBase64(await fileToBase64(quran));
-    });
-
-    // 3. Simpan settings ke Android atau IndexedDB
-    await safeRun("Simpan settings JSON", async () => {
-      if (isAndroid && AndroidBridge.saveSettingsJSON) {
-        AndroidBridge.saveSettingsJSON(JSON.stringify(settings));
-      } else {
-        await saveDatabaseToIndexedDB().catch(() => {});
-        localStorage.setItem("app_settings_json", JSON.stringify(settings));
+    //-----------------------------------
+    // 2. SIMPAN FILE-FILE (Hero, Audio, Video, PDF)
+    //-----------------------------------
+    await safeRun("Simpan hero image", async () => {
+      const f = adminHeroImage.files[0];
+      if (f) {
+        const data = await fileToUint8(f);
+        await saveFileToIndexedDB("hero_image", data);
       }
     });
 
-    // 4. Reload UI bagian tampilan
-    await safeRun("Reload loadSettings()", loadSettings);
-    await safeRun("Reload updatePrayerTimes()", updatePrayerTimes);
+    await safeRun("Simpan audio", async () => {
+      const f = adminAudio.files[0];
+      if (f) {
+        const data = await fileToUint8(f);
+        await saveFileToIndexedDB("audio", data);
+      }
+    });
 
-    // 5. Tutup panel admin (jika fungsi tersedia)
-    //await safeRun("toggleAdmin()", () => {
-    //  if (typeof toggleAdmin === "function") toggleAdmin();
-     // else showDebugMessage("⚠ toggleAdmin() tidak ditemukan!");
-   // });
-      await safeRun("Tutup panel admin", () => {
-    const panel = document.getElementById('adminPanel');
-    const overlay = document.getElementById('adminOverlay');
+    await safeRun("Simpan video quran", async () => {
+      const f = adminVideoQuran.files[0];
+      if (f) {
+        const data = await fileToUint8(f);
+        await saveFileToIndexedDB("video_quran", data);
+      }
+    });
 
-    panel.classList.remove('active');
-    overlay.classList.remove('active');
-});
+    //-----------------------------------
+    // 3. SIMPAN SETTINGS JSON
+    //-----------------------------------
+    await safeRun("Simpan settings JSON", async () => {
+      localStorage.setItem("app_settings_json", JSON.stringify(settings));
+      await saveDatabaseToIndexedDB();
+    });
 
+    //-----------------------------------
+    // 4. UPDATE UI
+    //-----------------------------------
+    await safeRun("loadSettings()", loadSettings);
+    await safeRun("updatePrayerTimes()", updatePrayerTimes);
 
-   // alert("✔ admin Setting berhasil disimpan!");
-    showDebugMessage("🎉 Penyimpanan selesai tanpa error");
+    //-----------------------------------
+    // 5. TUTUP PANEL ADMIN
+    //-----------------------------------
+    await safeRun("Tutup Panel Admin", () => {
+      document.getElementById("adminPanel").classList.remove("active");
+      document.getElementById("adminOverlay").classList.remove("active");
+    });
+
+    showDebugMessage("🎉 Semua pengaturan berhasil disimpan");
 
   } catch (err) {
-    showDebugMessage("❌ ERROR utama: " + (err?.message || err));
-    alert("❌ Gagal menyimpan: " + (err?.message || err));
+    showDebugMessage("❌ Error utama: " + err);
+    alert("Gagal menyimpan: " + err);
   }
 
   btn.disabled = false;
 }
+
 
 // Fungsi untuk inisialisasi database
 async function initDatabase() {
