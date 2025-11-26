@@ -93,25 +93,30 @@
             document.body.appendChild(box);
 
             // CLEAR BUTTON INSIDE BOX
+          // CLEAR BUTTON OUTSIDE BOX
             const clearBtn = document.createElement("button");
+            clearBtn.id = "clearDebugBtn";
             clearBtn.innerText = "Hapus Log";
-            clearBtn.style.position = "absolute";
-            clearBtn.style.top = "-35px";
-            clearBtn.style.right = "0";
-            clearBtn.style.padding = "5px 10px";
+            clearBtn.style.position = "fixed";
+            clearBtn.style.bottom = "265px";
+            clearBtn.style.right = "10px";
+            clearBtn.style.padding = "5px 12px";
             clearBtn.style.background = "#ff0048";
             clearBtn.style.color = "#fff";
             clearBtn.style.border = "none";
             clearBtn.style.borderRadius = "6px";
             clearBtn.style.cursor = "pointer";
             clearBtn.style.zIndex = "1000000";
-
+            clearBtn.style.display = "none";
+            
             clearBtn.onclick = () => {
                 box.innerHTML = "";
-                showDebugMessage("Log dibersihkan");
+                const t = new Date().toLocaleTimeString();
+                box.innerHTML = `[${t}] Log dibersihkan<br>`;
             };
+            
+            document.body.appendChild(clearBtn);
 
-            box.appendChild(clearBtn);
         }
         return box;
     }
@@ -163,6 +168,7 @@
             if (hideTimer) clearTimeout(hideTimer);
             hideTimer = setTimeout(() => {
                 box.style.display = "none";
+                document.getElementById("clearDebugBtn").style.display = "block";
             }, 7000);
         }
 
