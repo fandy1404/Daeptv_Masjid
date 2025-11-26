@@ -622,10 +622,18 @@ async function saveAdminSettings() {
     await safeRun("Reload updatePrayerTimes()", updatePrayerTimes);
 
     // 5. Tutup panel admin (jika fungsi tersedia)
-    await safeRun("toggleAdmin()", () => {
-      if (typeof toggleAdmin === "function") toggleAdmin();
-      else showDebugMessage("⚠ toggleAdmin() tidak ditemukan!");
-    });
+    //await safeRun("toggleAdmin()", () => {
+    //  if (typeof toggleAdmin === "function") toggleAdmin();
+     // else showDebugMessage("⚠ toggleAdmin() tidak ditemukan!");
+   // });
+      await safeRun("Tutup panel admin", () => {
+    const panel = document.getElementById('adminPanel');
+    const overlay = document.getElementById('adminOverlay');
+
+    panel.classList.remove('active');
+    overlay.classList.remove('active');
+});
+
 
    // alert("✔ admin Setting berhasil disimpan!");
     showDebugMessage("🎉 Penyimpanan selesai tanpa error");
@@ -983,32 +991,48 @@ function toggletema() {
 function toggleAdmin() {
     const panel = document.getElementById('adminPanel');
     const overlay = document.getElementById('adminOverlay');
-    
+
+    // Jika sedang aktif → tutup
     if (panel.classList.contains('active')) {
         panel.classList.remove('active');
         overlay.classList.remove('active');
-    } else {
-        // Load current settings into form
-        document.getElementById('adminMasjidName').value = settings.masjidName;
-        document.getElementById('adminMasjidAddress').value = settings.masjidAddress;
-        document.getElementById('adminSubuh').value = settings.prayerTimes.subuh;
-        document.getElementById('adminSyuruq').value = settings.prayerTimes.syuruq;
-        document.getElementById('adminImsak').value = settings.prayerTimes.imsak;
-        document.getElementById('adminDzuhur').value = settings.prayerTimes.dzuhur;
-        document.getElementById('adminAshar').value = settings.prayerTimes.ashar;
-        document.getElementById('adminMaghrib').value = settings.prayerTimes.maghrib;
-        document.getElementById('adminIsya').value = settings.prayerTimes.isya;
-        document.getElementById('adminQuoteText').value = settings.quote.text.replace(/"/g, '');
-        document.getElementById('adminQuoteSource').value = settings.quote.source;
-        document.getElementById('adminRunningText').value = settings.runningText;
-        
-        panel.classList.add('active');
-        overlay.classList.add('active');
-        // Jika dibuka, set fokus awal
-        adminIndex = 0;
-        setAdminFocus(adminIndex);
+        return; // penting!
     }
+
+    // === Cegah error jika settings belum siap ===
+    if (!settings) {
+        showDebugMessage("⚠ Settings belum siap untuk membuka admin panel");
+        return;
+    }
+
+    document.getElementById('adminMasjidName').value = settings.masjidName ?? "";
+    document.getElementById('adminMasjidAddress').value = settings.masjidAddress ?? "";
+
+    // Prayer times aman
+    const p = settings.prayerTimes ?? {};
+    adminSubuh.value = p.subuh ?? "";
+    adminSyuruq.value = p.syuruq ?? "";
+    adminImsak.value = p.imsak ?? "";
+    adminDzuhur.value = p.dzuhur ?? "";
+    adminAshar.value = p.ashar ?? "";
+    adminMaghrib.value = p.maghrib ?? "";
+    adminIsya.value = p.isya ?? "";
+
+    // Quote aman
+    const q = settings.quote ?? {};
+    adminQuoteText.value = (q.text ?? "").replace(/"/g, "");
+    adminQuoteSource.value = q.source ?? "";
+
+    adminRunningText.value = settings.runningText ?? "";
+
+    // Buka panel
+    panel.classList.add('active');
+    overlay.classList.add('active');
+
+    adminIndex = 0;
+    setAdminFocus(adminIndex);
 }
+
 
 // Kode JavaScript lainnya tetap sama
 const menu = document.getElementById('menu');
