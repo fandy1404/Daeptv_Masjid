@@ -392,110 +392,121 @@ async function safeRun(stepName, fn) {
 }
 
 // Zoom persistence helpers (safe)
-window.zoomLevel = window.settings?.zoomLevel ?? 1;
+ //   function applyZoom(level) {
+  //  document.documentElement.style.fontSize = `${12 * level}px`;
+//}
+    /* -------------------------
+      ZOOM CORE
+------------------------- */
+let zoomLevel = 1;
+/* Terapkan zoom ke UI */
+function applyZoom(level) {
+    document.body.style.transform = `scale(${level})`;
+    //document.body.style.transformOrigin = "top left";
+}
 async function saveZoomToDB() {
-  try {
-    if (typeof db === 'undefined' || !db) throw new Error("DB belum siap");
-    // Try sqlite-like save if available
     try {
-      if (typeof db.run === 'function') {
-        db.run("CREATE TABLE IF NOT EXISTS zoom_settings (id INTEGER PRIMARY KEY, zoom REAL)");
-        db.run("INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)", [zoomLevel]);
-      }
-    } catch(e) {
-      // ignore sqlite-specific errors; we'll persist settings to IndexedDB below
+        // simpan ke memory
+        settings.zoomLevel = zoomLevel;
+
+        // simpan ke localStorage
+        localStorage.setItem("zoom_level", zoomLevel);
+
+        // simpan ke SQLite jika ada
+        if (db && typeof db.run === "function") {
+            db.run("CREATE TABLE IF NOT EXISTS zoom_settings (id INTEGER PRIMARY KEY, zoom REAL)");
+            db.run("INSERT OR REPLACE INTO zoom_settings (id, zoom) VALUES (1, ?)", [zoomLevel]);
+            await saveDatabaseToIndexedDB();
+        }
+
+        showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
+
+    } catch (e) {
+        showDebugMessage("❌ Zoom gagal disimpan: " + e.message);
     }
-    window.settings = window.settings || {};
-    window.settings.zoomLevel = zoomLevel;
-    if (typeof saveDatabaseToIndexedDB === 'function') {
-      await saveDatabaseToIndexedDB();
-    }
-    showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
-  } catch (e) {
-    showDebugMessage("❌ Zoom gagal disimpan: " + (e && e.message ? e.message : e));
-  }
 }
 
+/* -------------------------
+  LOAD ZOOM DARI SQLITE / LOCALSTORAGE / SETTINGS
+------------------------- */
 async function loadZoomFromDB() {
-  try {
-    if (typeof db !== 'undefined' && db && typeof db.get === 'function') {
-      db.get("SELECT zoom FROM zoom_settings WHERE id = 1", [], (err, row) => {
-        if (err) {
-          showDebugMessage("⚠ loadZoomFromDB sqlite err: " + (err.message || err));
-          return;
+    try {
+        let loaded = false;
+
+        // 1) dari SQLite
+        if (db && typeof db.exec === "function") {
+            const r = db.exec("SELECT zoom FROM zoom_settings WHERE id = 1");
+            if (r.length && r[0].values.length) {
+                zoomLevel = parseFloat(r[0].values[0][0]);
+                loaded = true;
+                showDebugMessage("🔎 Zoom dipulihkan dari SQLite: " + zoomLevel);
+            }
         }
-        if (row && row.zoom != null) {
-          zoomLevel = parseFloat(row.zoom);
-          window.settings = window.settings || {};
-          window.settings.zoomLevel = zoomLevel;
-          if (typeof applyZoom === 'function') applyZoom(zoomLevel);
-          showDebugMessage("🔎 Zoom dipulihkan: " + zoomLevel);
+
+        // 2) dari localStorage
+        if (!loaded) {
+            const ls = localStorage.getItem("zoom_level");
+            if (ls) {
+                zoomLevel = parseFloat(ls);
+                loaded = true;
+                showDebugMessage("🔎 Zoom dipulihkan dari localStorage: " + zoomLevel);
+            }
         }
-      });
-    } else if (window.settings && window.settings.zoomLevel != null) {
-      zoomLevel = window.settings.zoomLevel;
-      if (typeof applyZoom === 'function') applyZoom(zoomLevel);
-      showDebugMessage("🔎 Zoom dipulihkan dari settings: " + zoomLevel);
-    } else {
-      showDebugMessage("⚠ Tidak menemukan data zoom; gunakan default: " + zoomLevel);
+
+        // 3) dari settings (fallback)
+        if (!loaded && settings.zoomLevel != null) {
+            zoomLevel = settings.zoomLevel;
+            loaded = true;
+            showDebugMessage("🔎 Zoom dipulihkan dari settings: " + zoomLevel);
+        }
+
+        // 4) default 1
+        if (!loaded) {
+            zoomLevel = 1;
+            showDebugMessage("⚠ Zoom default digunakan: 1");
+        }
+
+        applyZoom(zoomLevel);
+
+    } catch (e) {
+        showDebugMessage("⚠ Gagal load zoom: " + e.message);
     }
-  } catch (e) {
-    showDebugMessage("⚠ Gagal memuat zoom: " + (e && e.message ? e.message : e));
-  }
 }
-// --- PASTE END ---
 
+/* -------------------------
+    BUTTON HANDLER
+------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
 
-document.addEventListener('DOMContentLoaded', function() {
+    const step = 0.1;
+    const minZoom = 0.5;
+    const maxZoom = 2;
 
-   // 🔹 Dibaca dari database saat init — fallback ke 1 jika tidak ada data
-let zoomLevel = settings.zoomLevel ?? 1;
-const step = 0.1;
-const minZoom = 0.5;
-const maxZoom = 2;
+    // Terapkan langsung zoom saat halaman siap
+    loadZoomFromDB();
 
-// Terapkan zoom pertama kali
-applyZoom(zoomLevel);
-
-document.getElementById('zoom-in').addEventListener('click', async function () {
-    if (zoomLevel < maxZoom) {
+    document.getElementById("zoom-in").addEventListener("click", async () => {
         zoomLevel = Math.min(maxZoom, zoomLevel + step);
         applyZoom(zoomLevel);
-        await safeRun("saveZoomToDB (zoom in)", saveZoomToDB);
-    }
-});
+        await saveZoomToDB();
+    });
 
-document.getElementById('zoom-out').addEventListener('click', async function () {
-    if (zoomLevel > minZoom) {
+    document.getElementById("zoom-out").addEventListener("click", async () => {
         zoomLevel = Math.max(minZoom, zoomLevel - step);
         applyZoom(zoomLevel);
-        await safeRun("saveZoomToDB (zoom out)", saveZoomToDB);
-    }
+        await saveZoomToDB();
+    });
+
+    // refresh
+    document.getElementById("refresh").addEventListener("click", () => location.reload());
+
+    // fullscreen
+    document.getElementById("fullscreen").addEventListener("click", () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+    });
 });
 
-
-// 🔹 Fullscreen
-document.getElementById('fullscreen').addEventListener('click', function () {
-    if (!document.fullscreenElement &&
-        !document.webkitFullscreenElement &&
-        !document.msFullscreenElement
-    ) {
-        const docEl = document.documentElement;
-        (docEl.requestFullscreen ||
-         docEl.webkitRequestFullscreen ||
-         docEl.msRequestFullscreen).call(docEl);
-    } else {
-        (document.exitFullscreen ||
-         document.webkitExitFullscreen ||
-         document.msExitFullscreen).call(document);
-    }
-});
-
-// 🔹 Refresh
-document.getElementById('refresh')
-    .addEventListener('click', () => location.reload());
-
-});
 
 </script>
  <div class="ukuran">
