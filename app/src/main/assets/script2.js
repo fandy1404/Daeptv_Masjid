@@ -703,7 +703,7 @@ async function initDatabase() {
 
 
 function applyZoom(level) {
-    document.documentElement.style.fontSize = `${13 * level}px`;
+    document.documentElement.style.fontSize = `${12 * level}px`;
 }
 
 // Fungsi untuk cek apakah tabel ada
