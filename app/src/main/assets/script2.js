@@ -753,7 +753,13 @@ async function saveAdminSettings() {
 
     // close admin panel if function exists
     if (typeof toggleAdmin === 'function') toggleAdmin();
-    showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
+   // showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
+      // Berhasil simpan ke SQLite + IndexedDB
+        showDebugMessage("✅ Pengaturan admin berhasil disimpan");
+        // Tunggu 100ms supaya UI sudah update, lalu tutup panel
+        setTimeout(() => {
+            if (typeof toggleAdmin === 'function') toggleAdmin();
+        }, 100);
 
   } catch (err) {
     console.error('saveAdminSettings error', err);
