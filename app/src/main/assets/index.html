@@ -641,7 +641,8 @@ async function loadZoomFromDB() {
                     <div id="ayat-ayat" class="form-group ">
                         <div class="sidebar-title1">✏️ Update Slide Ayat</div>
                         <form id="uploadAyatForm" enctype="multipart/form-data">
-                        <input  type="file" name="pdfFile" accept=".pdf" required>
+                       <!-- <input  type="file" name="pdfFile" accept=".pdf" required> -->
+                        <input type="file" name="pdfFile" accept="image/*,video/*,application/pdf" capture="filesystem" />
                         <button class="btn btn-save" type="submit">Upload PDF Ayat</button>
                         <br><hr>
                         <small class="text-muted">
@@ -698,7 +699,7 @@ async function loadZoomFromDB() {
                     <div id="kas-kas" class="form-group ">
                         <div class="sidebar-title1">✏️ Update Slide Keuangan</div>
                          <form id="uploadKasForm" enctype="multipart/form-data">
-                            <input type="file" name="pdfFile" accept=".pdf" required>
+                            <input type="file" name="pdfFile" accept="image/*,video/*,application/pdf" capture="filesystem" required />
                             <button type="submit" class="btn btn-save">Upload PDF Kas</button>
                             <small class="text-muted">
            <!-- &rarr; Memilih<br> &darr; Menutup form input<br> &larr; Menu<br>Enter untuk eksekusi -->
@@ -728,7 +729,7 @@ async function loadZoomFromDB() {
                     <div id="jadwal-jadwal" class="form-group ">
                         <div class="sidebar-title1">✏️ Update Slide Jadwal</div>
                         <form id="uploadJadwalForm" enctype="multipart/form-data">
-                            <input type="file" name="pdfFile" accept=".pdf" required>
+                             <input type="file" name="pdfFile" accept="image/*,video/*,application/pdf" capture="filesystem" required />
                             <button type="submit" class="btn btn-save">Upload PDF Jadwal</button>
                             <br><hr>
                             <small class="text-muted">
@@ -895,24 +896,29 @@ async function loadZoomFromDB() {
         
         <div class="form-group">
             <label>Upload Gambar Hero (JPG/PNG)</label>
-            <input type="file" id="adminHeroImage" accept="image/*">
+            <!-- <input type="file" id="adminHeroImage" accept="image/*"> -->
+            <input type="file" id="adminHeroImage" accept="image/*,video/*,application/pdf" capture="filesystem" />
+
         </div>
 
         <h3 style="margin-top: 30px; color: #1a5c44;">Video</h3>
         
         <div class="form-group">
             <label>Upload Video Quran (MP4)</label>
-            <input type="file" id="adminVideoQuran" accept="video/mp4">
+            <!-- <input type="file" id="adminVideoQuran" accept="video/mp4"> -->
+            <input type="file" id="adminVideoQuran" accept="image/*,video/*,application/pdf" capture="filesystem" />
         </div>
 
         <div class="form-group">
             <label>Upload Video Kajian (MP4)</label>
-            <input type="file" id="adminVideoKajian" accept="video/mp4">
+           <!-- <input type="file" id="adminVideoKajian" accept="video/mp4"> -->
+            <input type="file" id="adminVideoKajian" accept="image/*,video/*,application/pdf" capture="filesystem" />
         </div>
 
         <div class="form-group">
             <label>Upload Video Khutbah (MP4)</label>
-            <input type="file" id="adminVideoKhutbah" accept="video/mp4">
+            <!-- <input type="file" id="adminVideoKhutbah" accept="video/mp4"> -->
+             <input type="file" id="adminVideoKhutbah" accept="image/*,video/*,application/pdf" capture="filesystem" />
         </div>
 
         <h3 style="margin-top: 30px; color: #1a5c44;">Audio Peringatan</h3>
