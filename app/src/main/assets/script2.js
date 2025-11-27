@@ -929,55 +929,58 @@ async function loadSettings() {
 
 // Fungsi untuk menyimpan database ke IndexedDB
 async function saveDatabaseToIndexedDB() {
-    return new Promise(resolve => {
-
-        if (!db || typeof db.export !== "function") {
-            showDebugMessage("⚠ DB belum siap, skip save");
-            return resolve();
-        }
-
-        // Export DB → Uint8Array
-        const binaryArray = db.export();
-
-        const request = indexedDB.open("AppDatabase", 1);
-
-        request.onupgradeneeded = e => {
-            const idb = e.target.result;
-            if (!idb.objectStoreNames.contains("sqlite")) {
-                idb.createObjectStore("sqlite");
+    return new Promise((resolve, reject) => {
+        try {
+            if (!db) {
+                showDebugMessage("❌ DB belum siap — tidak disimpan");
+                return resolve();
             }
-        };
 
-        request.onsuccess = e => {
-            const idb = e.target.result;
-            const tx = idb.transaction("sqlite", "readwrite");
-            const store = tx.objectStore("sqlite");
+            const binary = db.export();
+            const uint8 = new Uint8Array(binary);  // ← WAJIB: SQL.js output = ArrayBuffer
 
-            // Simpan langsung Uint8Array → lebih aman dan ringan
-            store.put(binaryArray, "main");
+            const request = indexedDB.open("AppDatabase", 1);
 
-            tx.oncomplete = () => {
-                showDebugMessage("💾 DB saved ke IndexedDB (OK)");
-                resolve();
+            request.onupgradeneeded = e => {
+                const idb = e.target.result;
+                if (!idb.objectStoreNames.contains("sqlite")) {
+                    idb.createObjectStore("sqlite");
+                }
             };
 
-            tx.onerror = () => {
-                showDebugMessage("❌ IndexedDB tx error saat simpan");
-                resolve(); // jangan reject — supaya tidak menghentikan app
-            };
-        };
+            request.onsuccess = e => {
+                const idb = e.target.result;
+                const tx = idb.transaction("sqlite", "readwrite");
 
-        request.onerror = e => {
-            showDebugMessage("❌ IndexedDB open error saat save");
-            resolve();
-        };
+                tx.objectStore("sqlite").put(uint8, "main");
+
+                tx.oncomplete = () => {
+                    showDebugMessage("💾 SQLite tersimpan ke IndexedDB OK");
+                    resolve();
+                };
+
+                tx.onerror = err => {
+                    showDebugMessage("❌ IndexedDB TX error saat save: " + err);
+                    reject(err);
+                };
+            };
+
+            request.onerror = err => {
+                showDebugMessage("❌ IndexedDB buka error: " + err);
+                reject(err);
+            };
+
+        } catch (err) {
+            showDebugMessage("❌ Exception save DB: " + err);
+            reject(err);
+        }
     });
 }
-
 
 // Fungsi untuk memuat database dari IndexedDB
 async function loadDatabaseFromIndexedDB() {
     return new Promise(resolve => {
+
         const request = indexedDB.open("AppDatabase", 1);
 
         request.onupgradeneeded = e => {
@@ -987,60 +990,46 @@ async function loadDatabaseFromIndexedDB() {
             }
         };
 
-        request.onsuccess = e => {
+        request.onsuccess = async e => {
             const idb = e.target.result;
             const tx = idb.transaction("sqlite", "readonly");
             const store = tx.objectStore("sqlite");
             const getReq = store.get("main");
 
-           getReq.onsuccess = async () => {
-                let data = getReq.result;
+            getReq.onsuccess = async () => {
+                const data = getReq.result;
+
                 if (!data) {
-                    showDebugMessage("⚠ Database SQLite kosong");
+                    showDebugMessage("⚠ DB kosong — memakai default");
                     return resolve();
                 }
+
                 let uint8;
-                if (data instanceof Blob) {
-                    showDebugMessage("📦 DB ditemukan sebagai Blob");
-                    const buf = await data.arrayBuffer();
-                    uint8 = new Uint8Array(buf);
-                }
-                else if (data instanceof Uint8Array) {
-                    showDebugMessage("📦 DB ditemukan sebagai Uint8Array");
-                    uint8 = data;
-                }
-                else if (data instanceof ArrayBuffer) {
-                    showDebugMessage("📦 DB ditemukan sebagai ArrayBuffer");
-                    uint8 = new Uint8Array(data);
-                }
+                if (data instanceof Uint8Array) uint8 = data;
+                else if (data instanceof ArrayBuffer) uint8 = new Uint8Array(data);
                 else {
-                    showDebugMessage("❌ Format DB tidak dikenal: " + typeof data);
-                    return resolve();
+                    uint8 = new Uint8Array(await data.arrayBuffer());
                 }
-            
-               // await db.import(uint8);
-                //showDebugMessage("📥 Database SQLite berhasil dimuat");
-               // resolve();
-               try {
-                        db = new SQL.Database(uint8);
-                        showDebugMessage("📥 Database SQLite berhasil dimuat (constructor)");
-                    } catch (e2) {
-                        showDebugMessage("❌ Gagal buat SQL.Database: " + e2.message);
-                    }
+
+                db = new SQL.Database(uint8);
+
+                showDebugMessage("📥 DB berhasil dimuat dari IndexedDB");
                 resolve();
             };
-            
+
             getReq.onerror = () => {
-                showDebugMessage("❌ Load blob SQLite gagal");
+                showDebugMessage("❌ Gagal load DB dari store");
                 resolve();
             };
         };
+
         request.onerror = () => {
             showDebugMessage("❌ IndexedDB gagal dibuka");
             resolve();
         };
     });
 }
+
 /*function showDebugMessage(msg) {
     // Buat debug box jika belum ada
     let box = document.getElementById("debugBox");
