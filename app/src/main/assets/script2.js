@@ -137,12 +137,21 @@ window.__intervals.push(setInterval(() => safeRunQuiet("updateDates", updateDate
       applyZoom(zoomLevel);
       await saveZoomToDB();
     });
-
     document.getElementById('zoom-out').addEventListener('click', async () => {
       zoomLevel = Math.max(0.5, zoomLevel - 0.1);
       applyZoom(zoomLevel);
       await saveZoomToDB();
     });
+     document.getElementById('fullscreen')
+        .addEventListener('click', function () {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+    document.getElementById('refresh')
+        .addEventListener('click', () => location.reload());
   showDebugMessage("🚀 Aplikasi siap digunakan (safe init)");
 });
 // --- PASTE END ---
