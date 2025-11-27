@@ -70,7 +70,6 @@
 
     let hideTimer = null;
 
-    // ========== CREATE DEBUG BOX ==========
     function ensureDebugBox() {
         let box = document.getElementById("debugBox");
         if (!box) {
@@ -89,11 +88,10 @@
             box.style.zIndex = "999999";
             box.style.overflowY = "auto";
             box.style.fontFamily = "monospace";
-            box.style.display = "none"; 
+            box.style.display = "none";
             document.body.appendChild(box);
 
-            // CLEAR BUTTON INSIDE BOX
-          // CLEAR BUTTON OUTSIDE BOX
+            // CLEAR button (di luar box)
             const clearBtn = document.createElement("button");
             clearBtn.id = "clearDebugBtn";
             clearBtn.innerText = "Hapus Log";
@@ -107,21 +105,19 @@
             clearBtn.style.borderRadius = "6px";
             clearBtn.style.cursor = "pointer";
             clearBtn.style.zIndex = "1000000";
-            clearBtn.style.display = "none";
-            
+            clearBtn.style.display = "none"; // default hidden
+
             clearBtn.onclick = () => {
                 box.innerHTML = "";
                 const t = new Date().toLocaleTimeString();
                 box.innerHTML = `[${t}] Log dibersihkan<br>`;
             };
-            
-            document.body.appendChild(clearBtn);
 
+            document.body.appendChild(clearBtn);
         }
         return box;
     }
 
-    // ========== TOGGLE BUTTON ==========
     function ensureToggleButton() {
         if (document.getElementById("debugToggleBtn")) return;
 
@@ -139,67 +135,56 @@
         btn.style.cursor = "pointer";
         btn.style.zIndex = "999999";
 
-               btn.onclick = () => {
+        btn.onclick = () => {
             const box = ensureDebugBox();
             const clearBtn = document.getElementById("clearDebugBtn");
-        
-            if (box.style.display === "none") {
-                box.style.display = "block";
-                clearBtn.style.display = "block";
-            } else {
-                box.style.display = "none";
-                clearBtn.style.display = "none";
-            }
-        };
 
+            const visible = box.style.display === "block";
+
+            box.style.display = visible ? "none" : "block";
+            clearBtn.style.display = visible ? "none" : "block";
+        };
 
         document.body.appendChild(btn);
     }
 
-    // ========== SHOW DEBUG MESSAGE ==========
     window.showDebugMessage = function (msg) {
         const box = ensureDebugBox();
+        const clearBtn = document.getElementById("clearDebugBtn");
         const time = new Date().toLocaleTimeString();
 
-        // BUAT LINE BARU DITAMBAHKAN DI PALING ATAS
         const line = document.createElement("div");
         line.innerHTML = `[${time}] ${msg}`;
+        box.insertBefore(line, box.firstChild);
 
-        // prepend (paling atas)
-        if (box.firstChild) box.insertBefore(line, box.firstChild);
-        else box.appendChild(line);
+        // tampilkan box HANYA jika bukan pesan spam
+        const isError = msg.startsWith("❌") || msg.startsWith("⚠");
 
-        // tampilkan box
         box.style.display = "block";
-        document.getElementById("clearDebugBtn").style.display = "block";
+        clearBtn.style.display = "block";
 
-        // auto-hide hanya jika bukan error
-        if (!msg.startsWith("❌") && !msg.startsWith("⚠")) {
+        if (!isError) {
+            // auto hide
             if (hideTimer) clearTimeout(hideTimer);
             hideTimer = setTimeout(() => {
                 box.style.display = "none";
-                document.getElementById("clearDebugBtn").style.display = "block";
+                clearBtn.style.display = "none";
             }, 7000);
         }
 
-        // console fallback
         console.log("[DEBUG]", msg);
     };
 
-    // ========== GLOBAL ERROR HANDLERS ==========
-    window.onerror = function (msg, src, line, col) {
+    window.onerror = (msg, src, line, col) =>
         showDebugMessage(`❌ ERROR: ${msg} (${line}:${col})`);
-    };
 
-    window.addEventListener("unhandledrejection", e => {
-        showDebugMessage(`❌ PROMISE ERROR: ${e.reason}`);
-    });
+    window.addEventListener("unhandledrejection", e =>
+        showDebugMessage(`❌ PROMISE ERROR: ${e.reason}`)
+    );
 
-    // INIT OK
     ensureToggleButton();
     showDebugMessage("🔧 Debug siap (prepend mode)");
 })();
-
 /* ⬇ lalu init dan window.onload */
 //window.onload = async function () {
  //   await initDatabase();
