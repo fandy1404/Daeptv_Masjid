@@ -57,23 +57,29 @@ window.addEventListener("error", (e) => {
 // --- PASTE START: safe init sequence (gunakan safeRun untuk setiap tahap) ---
 window.addEventListener('load', async () => {
   showDebugMessage("⏳ Memulai aplikasi (safe init)...");
+
+  // pastikan objek settings ada supaya tidak crash saat membaca property
+  window.settings = window.settings || {};
+
+  // init database (SQL.js + restore dari IndexedDB) — initDatabase sekarang menangani restore
   await safeRun("initDatabase", async () => {
     if (typeof initDatabase === 'function') await initDatabase();
     else showDebugMessage("⚠ initDatabase() tidak ditemukan");
   });
-  await safeRun("loadDatabaseFromIndexedDB", async () => {
-    if (typeof loadDatabaseFromIndexedDB === 'function') await loadDatabaseFromIndexedDB();
-    else showDebugMessage("⚠ loadDatabaseFromIndexedDB() tidak ditemukan");
-  });
+
+  // load settings (mengambil data dari `db` yang sudah benar)
   await safeRun("loadSettings", async () => {
     if (typeof loadSettings === 'function') await loadSettings();
     else showDebugMessage("⚠ loadSettings() tidak ditemukan");
   });
-     await safeRun("loadAdminFormFromSettings", async () => {
+
+  // isi form admin dari settings
+  await safeRun("loadAdminFormFromSettings", async () => {
     if (typeof loadAdminFormFromSettings === 'function') await loadAdminFormFromSettings();
     else showDebugMessage("⚠ loadAdminFormFromSettings() tidak ditemukan");
   });
-  // load zoom AFTER settings/db are ready
+
+  // load zoom setelah settings sudah siap
   await safeRun("loadZoomFromDB", async () => {
     if (typeof loadZoomFromDB === 'function') await loadZoomFromDB();
     else showDebugMessage("⚠ loadZoomFromDB() tidak ditemukan");
@@ -124,14 +130,12 @@ window.addEventListener('load', async () => {
 
   // ensure intervals use safeRun wrappers so an exception in a tick won't kill them
   window.__intervals = window.__intervals || [];
- // if (typeof updateClock === 'function') window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
- // if (typeof updateCountdowns === 'function') window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
- // if (typeof updateDates === 'function') window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
-window.__intervals.push(setInterval(() => safeRunQuiet("updateClock", updateClock), 1000));
-window.__intervals.push(setInterval(() => safeRunQuiet("updateCountdowns", updateCountdowns), 1000));
-window.__intervals.push(setInterval(() => safeRunQuiet("updateDates", updateDates), 60000));
+  window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
+  window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
+  window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
 
-     // event tombol
+  // event tombol zoom / fullscreen / refresh
+  try {
     document.getElementById('zoom-in').addEventListener('click', async () => {
       zoomLevel = Math.min(2, zoomLevel + 0.1);
       applyZoom(zoomLevel);
@@ -142,18 +146,24 @@ window.__intervals.push(setInterval(() => safeRunQuiet("updateDates", updateDate
       applyZoom(zoomLevel);
       await saveZoomToDB();
     });
-     document.getElementById('fullscreen')
+  } catch (e) { /* ignore if buttons missing in some screens */ }
+
+  try {
+    document.getElementById('fullscreen')
         .addEventListener('click', function () {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-            }
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
         });
+  } catch(e){}
+
+  try {
     document.getElementById('refresh')
         .addEventListener('click', () => location.reload());
+  } catch(e){}
+
   showDebugMessage("🚀 Aplikasi siap digunakan (safe init)");
 });
+
 // --- PASTE END ---
 // SAFE RUN QUIET — hanya tampil jika ERROR
 async function safeRunQuiet(stepName, fn) {
@@ -764,12 +774,21 @@ async function initDatabase() {
         SQL = await initSqlJs({
             locateFile: file => "file:///android_asset/" + file
         });
-        db = new SQL.Database();
-        showDebugMessage("🟩 SQL.js & SQLite siap");
-        // 2. Restore isi database dari IndexedDB
-        //await loadDatabaseFromIndexedDB();
 
-        // 3. Pastikan tabel tersedia
+        // create temporary DB instance (empty) — will be replaced if restore exists
+        db = new SQL.Database();
+        showDebugMessage("🟩 SQL.js siap, mencoba restore dari IndexedDB...");
+
+        // 2. Try to restore from IndexedDB; loadDatabaseFromIndexedDB returns true jika berhasil restore
+        const restored = await loadDatabaseFromIndexedDB(); // returns boolean
+
+        if (restored) {
+            showDebugMessage("✅ DB dipulihkan dari IndexedDB — lanjutkan migrasi/check");
+        } else {
+            showDebugMessage("⚠ Tidak ada DB di IndexedDB — akan dibuat DB baru jika perlu");
+        }
+
+        // 3. Pastikan tabel tersedia (migrasi / create if not exists)
         db.run(`
             CREATE TABLE IF NOT EXISTS settings (
                 id INTEGER PRIMARY KEY,
@@ -781,33 +800,48 @@ async function initDatabase() {
             );
         `);
 
-        // 4. Cek apakah sudah ada data awal
-        const check = db.exec("SELECT COUNT(*) FROM settings");
+        // 4. Cek apakah sudah ada data awal (table exists dan row)
+        let check = [];
+        try {
+            check = db.exec("SELECT COUNT(*) AS total FROM settings");
+        } catch (e) {
+            // jika query gagal, anggap belum ada data
+            check = [];
+        }
 
-        if (check.length === 0 || check[0].values[0][0] === 0) {
+        if (check.length === 0 || check[0].values.length === 0 || check[0].values[0][0] === 0) {
+            // hanya buat row default jika memang belum ada
             db.run(`
-                INSERT INTO settings (id, mosque_name, last_update)
+                INSERT OR REPLACE INTO settings (id, mosque_name, last_update)
                 VALUES (1, '', strftime('%s','now'));
             `);
 
-            showDebugMessage("⚡ DB dibuat pertama kali");
+            showDebugMessage("⚡ DB dibuat pertama kali (row settings)");
+            // simpan hasil baru ke IndexedDB
             await saveDatabaseToIndexedDB();
-            return;
         }
 
         // 5. Cek kolom apakah perlu migrasi
-        const columns = db.exec("PRAGMA table_info(settings)")[0].values.map(c => c[1]);
+        try {
+            const pi = db.exec("PRAGMA table_info(settings)");
+            if (pi && pi.length) {
+                const columns = pi[0].values.map(c => c[1]);
+                if (!columns.includes("hero_image")) db.run(`ALTER TABLE settings ADD COLUMN hero_image TEXT DEFAULT NULL;`);
+                if (!columns.includes("video_quran")) db.run(`ALTER TABLE settings ADD COLUMN video_quran TEXT DEFAULT NULL;`);
+                if (!columns.includes("video_kajian")) db.run(`ALTER TABLE settings ADD COLUMN video_kajian TEXT DEFAULT NULL;`);
+                if (!columns.includes("last_update")) db.run(`ALTER TABLE settings ADD COLUMN last_update INTEGER DEFAULT 0;`);
+            }
+        } catch (e) {
+            showDebugMessage("⚠ Migrasi check failed: " + (e?.message || e));
+        }
 
-        if (!columns.includes("hero_image")) db.run(`ALTER TABLE settings ADD COLUMN hero_image TEXT DEFAULT NULL;`);
-        if (!columns.includes("video_quran")) db.run(`ALTER TABLE settings ADD COLUMN video_quran TEXT DEFAULT NULL;`);
-        if (!columns.includes("video_kajian")) db.run(`ALTER TABLE settings ADD COLUMN video_kajian TEXT DEFAULT NULL;`);
-        if (!columns.includes("last_update")) db.run(`ALTER TABLE settings ADD COLUMN last_update INTEGER DEFAULT 0;`);
-
-        showDebugMessage("🔧 Migrasi database selesai");
+        // 6. Simpan setelah migrasi (aman)
         await saveDatabaseToIndexedDB();
 
+        showDebugMessage("🟩 initDatabase selesai");
+
     } catch (e) {
-        showDebugMessage("❌ initDatabase ERROR: " + e.message);
+        showDebugMessage("❌ initDatabase ERROR: " + (e && e.message ? e.message : e));
     }
 }
 
@@ -931,7 +965,12 @@ async function loadSettings() {
 async function saveDatabaseToIndexedDB() {
     return new Promise((resolve, reject) => {
         try {
-            const binary = db.export(); // Uint8Array
+            if (!db) {
+                showDebugMessage("⚠ db belum siap saat saveDatabaseToIndexedDB");
+                return resolve();
+            }
+
+            const binary = db.export(); // ArrayBuffer-like
             const uint8 = new Uint8Array(binary);
 
             const req = indexedDB.open("AppDatabase", 1);
@@ -944,7 +983,7 @@ async function saveDatabaseToIndexedDB() {
             };
 
             req.onsuccess = e => {
-                const idb = req.result;
+                const idb = e.target.result;
                 const tx = idb.transaction("sqlite", "readwrite");
                 tx.objectStore("sqlite").put(uint8, "main");
 
@@ -953,16 +992,24 @@ async function saveDatabaseToIndexedDB() {
                     resolve();
                 };
 
-                tx.onerror = () => reject(tx.error);
+                tx.onerror = () => {
+                    showDebugMessage("❌ IndexedDB tx error saat menyimpan SQLite");
+                    reject(tx.error);
+                };
             };
 
-            req.onerror = e => reject(e.target.error);
+            req.onerror = e => {
+                showDebugMessage("❌ IndexedDB request error: " + (e?.target?.error || e));
+                reject(e);
+            };
 
         } catch (err) {
+            showDebugMessage("❌ saveDatabaseToIndexedDB exception: " + (err?.message || err));
             reject(err);
         }
     });
 }
+
 // Fungsi untuk memuat database dari IndexedDB
 async function loadDatabaseFromIndexedDB() {
     return new Promise(resolve => {
@@ -979,51 +1026,64 @@ async function loadDatabaseFromIndexedDB() {
             const idb = e.target.result;
             const tx = idb.transaction("sqlite", "readonly");
             const store = tx.objectStore("sqlite");
-
             const getReq = store.get("main");
 
-            getReq.onsuccess = () => {
+            getReq.onsuccess = async () => {
                 const data = getReq.result;
 
                 if (!data) {
                     showDebugMessage("⚠ DB belum ada di IndexedDB (first run)");
-                    return resolve();
+                    return resolve(false);
                 }
 
                 let uint8;
-
-                if (data instanceof Uint8Array) {
-                    showDebugMessage("📦 DB ditemukan sebagai Uint8Array");
-                    uint8 = data;
+                try {
+                    if (data instanceof Uint8Array) {
+                        uint8 = data;
+                    } else if (data instanceof ArrayBuffer) {
+                        uint8 = new Uint8Array(data);
+                    } else if (data && typeof data === 'object' && ('buffer' in data) && data.buffer instanceof ArrayBuffer) {
+                        // sometimes serialized TypedArray-like object — handle defensively
+                        uint8 = new Uint8Array(data.buffer);
+                    } else {
+                        // last resort: if blob-like (won't usually happen on Android), try arrayBuffer
+                        if (typeof data.arrayBuffer === 'function') {
+                            const buf = await data.arrayBuffer();
+                            uint8 = new Uint8Array(buf);
+                        } else {
+                            showDebugMessage("❌ Format DB tidak diketahui saat load");
+                            return resolve(false);
+                        }
+                    }
+                } catch (err) {
+                    showDebugMessage("❌ Error parsing saved DB: " + (err?.message || err));
+                    return resolve(false);
                 }
-                else if (data instanceof ArrayBuffer) {
-                    showDebugMessage("📦 DB ditemukan sebagai ArrayBuffer");
-                    uint8 = new Uint8Array(data);
-                }
-                else {
-                    showDebugMessage("❌ Format DB tidak diketahui");
-                    return resolve();
-                }
 
-                // === SOLUSI: pakai constructor, bukan import ===
-                db = new SQL.Database(uint8);
-
-                showDebugMessage("📥 Database SQLite berhasil dimuat");
-                resolve();
+                try {
+                    // replace current db instance with restored DB (compatible with SQL.js old versions)
+                    db = new SQL.Database(uint8);
+                    showDebugMessage("📥 Database SQLite berhasil dimuat dari IndexedDB");
+                    return resolve(true);
+                } catch (err) {
+                    showDebugMessage("❌ Gagal buat SQL.Database dari data: " + (err?.message || err));
+                    return resolve(false);
+                }
             };
 
             getReq.onerror = () => {
                 showDebugMessage("❌ Gagal membaca DB dari IndexedDB");
-                resolve();
+                resolve(false);
             };
         };
 
         req.onerror = () => {
             showDebugMessage("❌ IndexedDB gagal dibuka");
-            resolve();
+            resolve(false);
         };
     });
 }
+
 
 /*function showDebugMessage(msg) {
     // Buat debug box jika belum ada
