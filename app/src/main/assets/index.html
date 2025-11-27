@@ -392,9 +392,9 @@ async function safeRun(stepName, fn) {
 }
 
 // Zoom persistence helpers (safe)
-    function applyZoom(level) {
-    document.documentElement.style.fontSize = `${12 * level}px`;
-}
+ //   function applyZoom(level) {
+  //  document.documentElement.style.fontSize = `${12 * level}px`;
+//}
 /*  
 let zoomLevel = 1;
 //function applyZoom(level) {
@@ -498,7 +498,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 }); */
 
+window.zoomLevel = 1;
+window.settings = window.settings || {};
 
+function applyZoom(level) {
+    document.documentElement.style.fontSize = `${12 * level}px`;
+}
+
+// simpan ke DB
 async function saveZoomToDB() {
   try {
     if (!db) throw new Error("DB belum siap");
@@ -508,52 +515,40 @@ async function saveZoomToDB() {
 
     window.settings.zoomLevel = zoomLevel;
 
-    if (typeof saveDatabaseToIndexedDB === 'function')
-      await saveDatabaseToIndexedDB();
-
+    await saveDatabaseToIndexedDB();
     showDebugMessage("🔍 Zoom tersimpan: " + zoomLevel);
-
   } catch (e) {
     showDebugMessage("❌ Zoom gagal disimpan: " + e.message);
   }
 }
 
+// load dari DB
 async function loadZoomFromDB() {
   try {
-    if (!db) {
-      showDebugMessage("⚠ DB belum siap untuk load zoom");
+    const r = db.exec("SELECT zoom FROM zoom_settings WHERE id = 1");
+
+    if (r.length && r[0].values.length) {
+      zoomLevel = parseFloat(r[0].values[0][0]);
+      window.settings.zoomLevel = zoomLevel;
+      applyZoom(zoomLevel);
+      showDebugMessage("🔎 Zoom dipulihkan: " + zoomLevel);
       return;
     }
 
-    const result = db.exec("SELECT zoom FROM zoom_settings WHERE id = 1");
-
-    if (result.length && result[0].values.length) {
-      zoomLevel = parseFloat(result[0].values[0][0]);
-      window.settings.zoomLevel = zoomLevel;
-
-      applyZoom(zoomLevel);
-      showDebugMessage("🔎 Zoom dipulihkan: " + zoomLevel);
-
-    } else {
-      showDebugMessage("⚠ Zoom belum ada → pakai default: " + zoomLevel);
-      applyZoom(zoomLevel);
-    }
-
+    zoomLevel = 1;
+    applyZoom(zoomLevel);
+    showDebugMessage("⚠ Zoom default: 1");
   } catch (e) {
-    showDebugMessage("⚠ Gagal load zoom: " + e.message);
+    showDebugMessage("❌ loadZoomFromDB: " + e.message);
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-
+/* document.addEventListener('DOMContentLoaded', function() {
     zoomLevel = window.settings.zoomLevel ?? 1;
-
     const step = 0.1;
     const minZoom = 0.5;
     const maxZoom = 2;
-
     applyZoom(zoomLevel);
-
     document.getElementById('zoom-in').addEventListener('click', async () => {
         if (zoomLevel < maxZoom) {
             zoomLevel = Math.min(maxZoom, zoomLevel + step);
@@ -561,7 +556,6 @@ document.addEventListener('DOMContentLoaded', function() {
             await safeRun("saveZoomToDB (zoom in)", saveZoomToDB);
         }
     });
-
     document.getElementById('zoom-out').addEventListener('click', async () => {
         if (zoomLevel > minZoom) {
             zoomLevel = Math.max(minZoom, zoomLevel - step);
@@ -569,7 +563,6 @@ document.addEventListener('DOMContentLoaded', function() {
             await safeRun("saveZoomToDB (zoom out)", saveZoomToDB);
         }
     });
-
     document.getElementById('fullscreen')
         .addEventListener('click', function () {
             if (!document.fullscreenElement) {
@@ -578,11 +571,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.exitFullscreen();
             }
         });
-
     document.getElementById('refresh')
         .addEventListener('click', () => location.reload());
-
-});
+}); */
 
 </script>
  <div class="ukuran">
