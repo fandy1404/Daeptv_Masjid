@@ -752,7 +752,7 @@ async function saveAdminSettings() {
     } catch(e){ console.warn("loadSettings() fallback failed", e); }
 
     // close admin panel if function exists
-    if (typeof toggleAdmin === 'function') toggleAdmin();
+    //if (typeof toggleAdmin === 'function') toggleAdmin();
    // showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
       // Berhasil simpan ke SQLite + IndexedDB
         showDebugMessage("✅ Pengaturan admin berhasil disimpan");
