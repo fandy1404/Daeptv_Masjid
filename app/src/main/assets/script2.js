@@ -928,104 +928,84 @@ async function loadSettings() {
 }
 
 // Fungsi untuk menyimpan database ke IndexedDB
-async function saveDatabaseToIndexedDB() {
-    return new Promise((resolve, reject) => {
-        try {
-            if (!db) {
-                showDebugMessage("❌ DB belum siap — tidak disimpan");
-                return resolve();
-            }
-
+async function saveDatabaseToIndexedDB(){
+    return new Promise((resolve,reject)=>{
+        try{
             const binary = db.export();
-            const uint8 = new Uint8Array(binary);  // ← WAJIB: SQL.js output = ArrayBuffer
+            const uint8 = new Uint8Array(binary);
 
-            const request = indexedDB.open("AppDatabase", 1);
+            const req = indexedDB.open("AppDatabase",1);
 
-            request.onupgradeneeded = e => {
+            req.onupgradeneeded = e=>{
                 const idb = e.target.result;
-                if (!idb.objectStoreNames.contains("sqlite")) {
+                if(!idb.objectStoreNames.contains("sqlite")){
                     idb.createObjectStore("sqlite");
                 }
             };
 
-            request.onsuccess = e => {
+            req.onsuccess = e=>{
                 const idb = e.target.result;
-                const tx = idb.transaction("sqlite", "readwrite");
-
+                const tx = idb.transaction("sqlite","readwrite");
                 tx.objectStore("sqlite").put(uint8, "main");
 
-                tx.oncomplete = () => {
-                    showDebugMessage("💾 SQLite tersimpan ke IndexedDB OK");
+                tx.oncomplete = ()=>{
+                    showDebugMessage("💾 SQLite tersimpan (Uint8Array)");
                     resolve();
                 };
-
-                tx.onerror = err => {
-                    showDebugMessage("❌ IndexedDB TX error saat save: " + err);
-                    reject(err);
-                };
+                tx.onerror = ()=>reject(tx.error);
             };
 
-            request.onerror = err => {
-                showDebugMessage("❌ IndexedDB buka error: " + err);
-                reject(err);
-            };
-
-        } catch (err) {
-            showDebugMessage("❌ Exception save DB: " + err);
+            req.onerror = e=>reject(e.target.error);
+        }catch(err){
             reject(err);
         }
     });
 }
 
+
 // Fungsi untuk memuat database dari IndexedDB
-async function loadDatabaseFromIndexedDB() {
-    return new Promise(resolve => {
+async function loadDatabaseFromIndexedDB(){
+    return new Promise(resolve=>{
+        const req = indexedDB.open("AppDatabase",1);
 
-        const request = indexedDB.open("AppDatabase", 1);
-
-        request.onupgradeneeded = e => {
-            const idb = e.target.result;
-            if (!idb.objectStoreNames.contains("sqlite")) {
-                idb.createObjectStore("sqlite");
-            }
-        };
-
-        request.onsuccess = async e => {
-            const idb = e.target.result;
-            const tx = idb.transaction("sqlite", "readonly");
+        req.onsuccess = e=>{
+            const idb = req.result;
+            const tx = idb.transaction("sqlite","readonly");
             const store = tx.objectStore("sqlite");
+
             const getReq = store.get("main");
 
-            getReq.onsuccess = async () => {
+            getReq.onsuccess = async ()=>{
                 const data = getReq.result;
 
-                if (!data) {
-                    showDebugMessage("⚠ DB kosong — memakai default");
+                if(!data){
+                    showDebugMessage("⚠ DB kosong di IndexedDB");
                     return resolve();
                 }
 
                 let uint8;
-                if (data instanceof Uint8Array) uint8 = data;
-                else if (data instanceof ArrayBuffer) uint8 = new Uint8Array(data);
-                else {
-                    uint8 = new Uint8Array(await data.arrayBuffer());
+
+                if(data instanceof Uint8Array){
+                    showDebugMessage("📦 DB ditemukan sebagai Uint8Array");
+                    uint8 = data;
+                }else if(data instanceof ArrayBuffer){
+                    showDebugMessage("📦 DB ditemukan sebagai ArrayBuffer");
+                    uint8 = new Uint8Array(data);
+                }else{
+                    showDebugMessage("❌ Format DB tidak dikenal");
+                    return resolve();
                 }
 
-                db = new SQL.Database(uint8);
-
+                await db.import(uint8);
                 showDebugMessage("📥 DB berhasil dimuat dari IndexedDB");
+
                 resolve();
             };
 
-            getReq.onerror = () => {
-                showDebugMessage("❌ Gagal load DB dari store");
+            getReq.onerror = ()=>{
+                showDebugMessage("❌ Gagal load DB dari IndexedDB");
                 resolve();
             };
-        };
-
-        request.onerror = () => {
-            showDebugMessage("❌ IndexedDB gagal dibuka");
-            resolve();
         };
     });
 }
