@@ -131,6 +131,18 @@ window.__intervals.push(setInterval(() => safeRunQuiet("updateClock", updateCloc
 window.__intervals.push(setInterval(() => safeRunQuiet("updateCountdowns", updateCountdowns), 1000));
 window.__intervals.push(setInterval(() => safeRunQuiet("updateDates", updateDates), 60000));
 
+     // event tombol
+    document.getElementById('zoom-in').addEventListener('click', async () => {
+      zoomLevel = Math.min(2, zoomLevel + 0.1);
+      applyZoom(zoomLevel);
+      await saveZoomToDB();
+    });
+
+    document.getElementById('zoom-out').addEventListener('click', async () => {
+      zoomLevel = Math.max(0.5, zoomLevel - 0.1);
+      applyZoom(zoomLevel);
+      await saveZoomToDB();
+    });
   showDebugMessage("🚀 Aplikasi siap digunakan (safe init)");
 });
 // --- PASTE END ---
