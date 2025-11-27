@@ -57,28 +57,22 @@ window.addEventListener("error", (e) => {
 // --- PASTE START: safe init sequence (gunakan safeRun untuk setiap tahap) ---
 window.addEventListener('load', async () => {
   showDebugMessage("⏳ Memulai aplikasi (safe init)...");
-
-  // pastikan objek settings ada supaya tidak crash saat membaca property
   window.settings = window.settings || {};
-
   // init database (SQL.js + restore dari IndexedDB) — initDatabase sekarang menangani restore
   await safeRun("initDatabase", async () => {
     if (typeof initDatabase === 'function') await initDatabase();
     else showDebugMessage("⚠ initDatabase() tidak ditemukan");
   });
-
   // load settings (mengambil data dari `db` yang sudah benar)
   await safeRun("loadSettings", async () => {
     if (typeof loadSettings === 'function') await loadSettings();
     else showDebugMessage("⚠ loadSettings() tidak ditemukan");
   });
-
   // isi form admin dari settings
   await safeRun("loadAdminFormFromSettings", async () => {
     if (typeof loadAdminFormFromSettings === 'function') await loadAdminFormFromSettings();
     else showDebugMessage("⚠ loadAdminFormFromSettings() tidak ditemukan");
   });
-
   // load zoom setelah settings sudah siap
   await safeRun("loadZoomFromDB", async () => {
     if (typeof loadZoomFromDB === 'function') await loadZoomFromDB();
@@ -101,7 +95,6 @@ window.addEventListener('load', async () => {
       }
     } catch(e) { showDebugMessage("⚠ restoreActiveSection err: " + (e.message||e)); }
   });
-
   // fill iqomah inputs safely
   await safeRun("isiDelayIqomahKeForm", async () => {
     try {
@@ -118,7 +111,6 @@ window.addEventListener('load', async () => {
       }
     } catch(e) { showDebugMessage("⚠ isiDelayIqomahKeForm err: " + (e.message||e)); }
   });
-
   // kick off upload tasks but don't block the UI
   try {
     if (typeof uploadPdf === 'function') {
@@ -182,8 +174,6 @@ async function safeRunQuiet(stepName, fn) {
     showDebugMessage(`❌ ERROR di ${stepName}: ${err?.message || err}`, {level:'error', persist:true});
   }
 }
-
-
 
 // Clock function
 /*function updateClock() {
@@ -763,7 +753,6 @@ async function saveAdminSettings() {
 
     // close admin panel if function exists
     if (typeof toggleAdmin === 'function') toggleAdmin();
-
     showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
 
   } catch (err) {
