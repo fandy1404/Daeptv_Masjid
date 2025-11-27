@@ -196,40 +196,64 @@ async function safeRunQuiet(stepName, fn) {
     const separator = seconds % 2 === 0 ? ':' : ' ';
     document.getElementById('clock').textContent = `${hours}${separator}${minutes}`;
 } */
-function loadAdminFormFromSettings() {
+async function loadAdminFormFromDB() {
   try {
-    window.settings = window.settings || {};
-    document.getElementById('adminMasjidName').value = window.settings.masjidName || "";
-    document.getElementById('adminMasjidAddress').value = window.settings.masjidAddress || "";
-
-    const pt = window.settings.prayerTimes || {};
-    if (pt) {
-      document.getElementById('adminSubuh').value = pt.subuh || "";
-      document.getElementById('adminDzuhur').value = pt.dzuhur || "";
-      document.getElementById('adminAshar').value = pt.ashar || "";
-      document.getElementById('adminMaghrib').value = pt.maghrib || "";
-      document.getElementById('adminIsya').value = pt.isya || "";
-      document.getElementById('adminImsak').value = pt.imsak || "";
-      document.getElementById('adminSyuruq').value = pt.syuruq || "";
+    if (!db) {
+      showDebugMessage("⚠ DB belum siap saat loadAdminFormFromDB");
+      return;
     }
+    // ==========================
+    // 1. LOAD SETTINGS TABLE
+    // ==========================
+    let r = db.exec("SELECT * FROM settings WHERE id = 1");
+    if (r.length > 0) {
+      const row = r[0].values[0];
 
-    const iq = window.settings.iqomahDelays || {};
-    document.getElementById('delaySubuh').value = iq.subuh ?? 0;
-    document.getElementById('delayDzuhur').value = iq.dzuhur ?? 0;
-    document.getElementById('delayAshar').value = iq.ashar ?? 0;
-    document.getElementById('delayMaghrib').value = iq.maghrib ?? 0;
-    document.getElementById('delayIsya').value = iq.isya ?? 0;
+      const masjidName     = row[1] ?? "";
+      const masjidAddress  = row[2] ?? "";
+      const runningText    = row[3] ?? "";
+      const quoteText      = row[4] ?? "";
+      const quoteSource    = row[5] ?? "";
 
-    document.getElementById('adminQuoteText').value = window.settings.quote?.text || "";
-    document.getElementById('adminQuoteSource').value = window.settings.quote?.source || "";
-    document.getElementById('adminRunningText').value = window.settings.runningText || "";
+      document.getElementById("adminMasjidName").value    = masjidName;
+      document.getElementById("adminMasjidAddress").value = masjidAddress;
+      document.getElementById("adminRunningText").value   = runningText;
+      document.getElementById("adminQuoteText").value     = quoteText;
+      document.getElementById("adminQuoteSource").value   = quoteSource;
+    }
+    // ==========================
+    // 2. LOAD PRAYER TIMES
+    // ==========================
+    r = db.exec("SELECT * FROM prayer_times WHERE id = 1");
+    if (r.length > 0) {
+      const p = r[0].values[0];
 
-    showDebugMessage("▶ Admin form diisi dari settings", {level:'info', persist:false});
-  } catch(e) {
-    showDebugMessage("❌ loadAdminFormFromSettings error: " + (e?.message||e), {level:'error', persist:true});
+      document.getElementById('adminSubuh').value   = p[1] || "";
+      document.getElementById('adminDzuhur').value  = p[2] || "";
+      document.getElementById('adminAshar').value   = p[3] || "";
+      document.getElementById('adminMaghrib').value = p[4] || "";
+      document.getElementById('adminIsya').value    = p[5] || "";
+      document.getElementById('adminImsak').value   = p[6] || "";
+      document.getElementById('adminSyuruq').value  = p[7] || "";
+    }
+    // ==========================
+    // 3. LOAD IQOMAH DELAYS
+    // ==========================
+    r = db.exec("SELECT * FROM iqomah_delays WHERE id = 1");
+    if (r.length > 0) {
+      const d = r[0].values[0];
+
+      document.getElementById('delaySubuh').value   = d[1] ?? 0;
+      document.getElementById('delayDzuhur').value  = d[2] ?? 0;
+      document.getElementById('delayAshar').value   = d[3] ?? 0;
+      document.getElementById('delayMaghrib').value = d[4] ?? 0;
+      document.getElementById('delayIsya').value    = d[5] ?? 0;
+    }
+    showDebugMessage("📝 Admin form terisi dari database");
+  } catch (e) {
+    showDebugMessage("❌ loadAdminFormFromDB ERROR: " + e.message);
   }
 }
-
 
 function updateClock() {
     const now = new Date();
