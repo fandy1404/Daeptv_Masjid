@@ -129,10 +129,15 @@ window.addEventListener('load', async () => {
   } catch(e) { showDebugMessage("⚠ upload tasks err: " + (e.message||e)); }
 
   // ensure intervals use safeRun wrappers so an exception in a tick won't kill them
-  window.__intervals = window.__intervals || [];
-  window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
-  window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
-  window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
+ // window.__intervals = window.__intervals || [];
+ // window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
+ // window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
+ // window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
+     window.__intervals = window.__intervals || [];
+    window.__intervals.push(setInterval(() => safeRunQuiet("updateClock", updateClock), 1000));
+    window.__intervals.push(setInterval(() => safeRunQuiet("updateCountdowns", updateCountdowns), 1000));
+    window.__intervals.push(setInterval(() => safeRunQuiet("updateDates", updateDates), 60000));
+    window.__intervals.push(setInterval(() => safeRunQuiet("updatePrayerTimes", updatePrayerTimes), 60000));
 
   // event tombol zoom / fullscreen / refresh
   try {
@@ -172,11 +177,12 @@ async function safeRunQuiet(stepName, fn) {
     if (result && typeof result.then === "function") {
       await result;
     }
-    // Tidak ada showDebugMessage di sini
+    // tidak ada debug message
   } catch (err) {
-    showDebugMessage(`❌ ERROR di ${stepName}: ${err?.message || err}`);
+    showDebugMessage(`❌ ERROR di ${stepName}: ${err?.message || err}`, {level:'error', persist:true});
   }
 }
+
 
 
 // Clock function
