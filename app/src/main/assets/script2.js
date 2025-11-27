@@ -928,84 +928,99 @@ async function loadSettings() {
 }
 
 // Fungsi untuk menyimpan database ke IndexedDB
-async function saveDatabaseToIndexedDB(){
-    return new Promise((resolve,reject)=>{
-        try{
-            const binary = db.export();
+async function saveDatabaseToIndexedDB() {
+    return new Promise((resolve, reject) => {
+        try {
+            const binary = db.export(); // Uint8Array
             const uint8 = new Uint8Array(binary);
 
-            const req = indexedDB.open("AppDatabase",1);
+            const req = indexedDB.open("AppDatabase", 1);
 
-            req.onupgradeneeded = e=>{
+            req.onupgradeneeded = e => {
                 const idb = e.target.result;
-                if(!idb.objectStoreNames.contains("sqlite")){
+                if (!idb.objectStoreNames.contains("sqlite")) {
                     idb.createObjectStore("sqlite");
                 }
             };
 
-            req.onsuccess = e=>{
-                const idb = e.target.result;
-                const tx = idb.transaction("sqlite","readwrite");
+            req.onsuccess = e => {
+                const idb = req.result;
+                const tx = idb.transaction("sqlite", "readwrite");
                 tx.objectStore("sqlite").put(uint8, "main");
 
-                tx.oncomplete = ()=>{
-                    showDebugMessage("💾 SQLite tersimpan (Uint8Array)");
+                tx.oncomplete = () => {
+                    showDebugMessage("💾 SQLite tersimpan ke IndexedDB (Uint8Array)");
                     resolve();
                 };
-                tx.onerror = ()=>reject(tx.error);
+
+                tx.onerror = () => reject(tx.error);
             };
 
-            req.onerror = e=>reject(e.target.error);
-        }catch(err){
+            req.onerror = e => reject(e.target.error);
+
+        } catch (err) {
             reject(err);
         }
     });
 }
-
-
 // Fungsi untuk memuat database dari IndexedDB
-async function loadDatabaseFromIndexedDB(){
-    return new Promise(resolve=>{
-        const req = indexedDB.open("AppDatabase",1);
+async function loadDatabaseFromIndexedDB() {
+    return new Promise(resolve => {
+        const req = indexedDB.open("AppDatabase", 1);
 
-        req.onsuccess = e=>{
-            const idb = req.result;
-            const tx = idb.transaction("sqlite","readonly");
+        req.onupgradeneeded = e => {
+            const idb = e.target.result;
+            if (!idb.objectStoreNames.contains("sqlite")) {
+                idb.createObjectStore("sqlite");
+            }
+        };
+
+        req.onsuccess = e => {
+            const idb = e.target.result;
+            const tx = idb.transaction("sqlite", "readonly");
             const store = tx.objectStore("sqlite");
 
             const getReq = store.get("main");
 
-            getReq.onsuccess = async ()=>{
+            getReq.onsuccess = () => {
                 const data = getReq.result;
 
-                if(!data){
-                    showDebugMessage("⚠ DB kosong di IndexedDB");
+                if (!data) {
+                    showDebugMessage("⚠ DB belum ada di IndexedDB (first run)");
                     return resolve();
                 }
 
                 let uint8;
 
-                if(data instanceof Uint8Array){
+                if (data instanceof Uint8Array) {
                     showDebugMessage("📦 DB ditemukan sebagai Uint8Array");
                     uint8 = data;
-                }else if(data instanceof ArrayBuffer){
+                }
+                else if (data instanceof ArrayBuffer) {
                     showDebugMessage("📦 DB ditemukan sebagai ArrayBuffer");
                     uint8 = new Uint8Array(data);
-                }else{
-                    showDebugMessage("❌ Format DB tidak dikenal");
+                }
+                else {
+                    showDebugMessage("❌ Format DB tidak diketahui");
                     return resolve();
                 }
 
-                await db.import(uint8);
-                showDebugMessage("📥 DB berhasil dimuat dari IndexedDB");
+                // === SOLUSI: pakai constructor, bukan import ===
+                db = new SQL.Database(uint8);
 
+                showDebugMessage("📥 Database SQLite berhasil dimuat");
                 resolve();
             };
 
-            getReq.onerror = ()=>{
-                showDebugMessage("❌ Gagal load DB dari IndexedDB");
+            getReq.onerror = () => {
+                showDebugMessage("❌ Gagal membaca DB dari IndexedDB");
                 resolve();
             };
+        };
+
+        req.onerror = () => {
+            showDebugMessage("❌ IndexedDB gagal dibuka");
+            resolve();
         };
     });
 }
