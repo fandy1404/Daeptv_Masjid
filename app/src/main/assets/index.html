@@ -18,15 +18,16 @@
             <div class="sidebar-title">☰ MENU</div>
             <button class="close-btn" onclick="toggleSidebar()">✕</button>
         </div>
-        <ul class="menu-items" id="menu">
-            <li tabindex="0" class="menu-item active" onclick="showContent('utama')">🏠 Utama</li>
-            <li tabindex="-1" class="menu-item" onclick="showContent('ayat')">📖 Ayat Al-Quran</li>
-            <li tabindex="-1" class="menu-item" onclick="showContent('video-quran')">🎥 Video Quran</li>
-            <li tabindex="-1" class="menu-item" onclick="showContent('kas')">💰 Kas Masjid</li>
-            <li tabindex="-1" class="menu-item" onclick="showContent('jadwal-kajian')">📅 Jadwal Kajian</li>
-            <li tabindex="-1" class="menu-item" onclick="showContent('video-kajian')">🎬 Video Kajian</li>
-            <li tabindex="-1" class="menu-item" onclick="showContent('khutbah')">🕌 Khutbah Jum'at</li>
+       <ul class="menu-items" id="menu">
+            <li tabindex="0" class="menu-item active" onclick="showContent('utama', event)">🏠 Utama</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('ayat', event)">📖 Ayat Al-Quran</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('video-quran', event)">🎥 Video Quran</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('kas', event)">💰 Kas Masjid</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('jadwal-kajian', event)">📅 Jadwal Kajian</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('video-kajian', event)">🎬 Video Kajian</li>
+            <li tabindex="-1" class="menu-item" onclick="showContent('khutbah', event)">🕌 Khutbah Jum'at</li>
         </ul>
+
     </div>
     <div class="sidebar1-overlay" id="sidebarOverlay1" onclick="toggletema()"></div>
     <div class="sidebar1" id="sidebar1">
