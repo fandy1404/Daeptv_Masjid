@@ -502,120 +502,143 @@ function toggletema() {
     sidebar1.classList.toggle('active');
 } */
 // Content navigation
-async function showContent(contentId, ev = null) {
-    // === 1. Pause video aktif (lebih aman) ===
-    const currentActive = document.querySelector('.content-section.active');
-    if (currentActive) {
-        const vid = currentActive.querySelector('video');
-        if (vid) {
-            vid.pause();
-            vid.currentTime = 0;
+async function showContent(contentId) {
+    // Cek jika section 'video-quran' sedang aktif, lalu pause video dan reset ke awal
+    const currentActiveSection = document.querySelector('.content-section.active');
+    if (currentActiveSection && currentActiveSection.id === 'video-quran') {
+        const video = document.getElementById('videoQuran');
+        if (video) {
+            video.pause(); // Hentikan pemutaran video
+            video.currentTime = 0; // Reset video ke awal (opsional, hapus jika tidak ingin reset)
+        }
+    }else if (currentActiveSection && currentActiveSection.id === 'video-kajian') {
+        const video = document.getElementById('videoKajian');
+        if (video) {
+            video.pause(); // Hentikan pemutaran video
+            video.currentTime = 0; // Reset video ke awal (opsional, hapus jika tidak ingin reset)
+        }
+    }else if (currentActiveSection && currentActiveSection.id === 'khutbah') {
+        const video = document.getElementById('videoKhutbah');
+        if (video) {
+            video.pause(); // Hentikan pemutaran video
+            video.currentTime = 0; // Reset video ke awal (opsional, hapus jika tidak ingin reset)
         }
     }
-    // === 2. Sembunyikan semua section ===
-    document.querySelectorAll('.content-section')
-        .forEach(sec => sec.classList.remove('active'));
 
-    // === 3. Reset semua menu item ===
-    document.querySelectorAll('.menu-item')
-        .forEach(item => item.classList.remove('active'));
-
-    // === 4. Tampilkan section yang baru ===
-    const newSec = document.getElementById(contentId);
-    if (!newSec) {
-        showDebugMessage("❌ Section tidak ditemukan: " + contentId);
-        return;
-    }
-    newSec.classList.add('active');
-
-    // === 5. Aktifkan menu yang sesuai ===
-    if (ev && ev.target) {
-        ev.target.classList.add('active');
+    // Hide all content sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.classList.remove('active'));
+    
+    // Remove active class from all menu items
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(item => item.classList.remove('active'));
+    
+    // Show selected content
+    document.getElementById(contentId).classList.add('active');
+    
+    // Add active class to clicked menu item
+   // event.target.classList.add('active');
+     if (event && event.target) {
+        event.target.classList.add('active');  // Untuk klik manual
     } else {
-        const menuId = "menu-" + contentId;
-        const mi = document.getElementById(menuId);
-        if (mi) mi.classList.add('active');
-        else showDebugMessage("⚠ menu item tidak ditemukan: " + menuId);
-    }
-
-    // === 6. Load PDF jika perlu ===
+        // Untuk restore: Cari menu item berdasarkan contentId (asumsikan ID menu item seperti 'menu-ayat')
+        const menuItem = document.getElementById(`menu-${contentId}`);
+        if (menuItem) {
+            menuItem.classList.add('active');
+            console.log('Active class added to menu item:', `menu-${contentId}`);  // Debug log
+        } else {
+            console.warn('Menu item not found for contentId:', contentId);
+        }
+    } 
+    
+    // Tambahan: Load PDF dari BLOB untuk section ayat, kas, atau jadwal-kajian
     try {
         if (contentId === 'ayat') {
             const stmt = db.prepare("SELECT pdf_data FROM ayat_pdf WHERE id = 1");
-            const row = stmt.getAsObject();
-            stmt.free();
-
-            if (row.pdf_data) {
-                showDebugMessage("📄 Memuat PDF AYAT");
-                await loadPdfSlideshow(row.pdf_data, 'ayatSlideshow');
-            } else {
-                showDebugMessage("⚠ PDF AYAT kosong");
+            const result = stmt.getAsObject();
+            if (result.pdf_data) {
+                await loadPdfSlideshow(result.pdf_data, 'ayatSlideshow'); 
             }
-        }
-
-        if (contentId === 'kas') {
+            stmt.free();
+            //initFlipbook();
+        } else if (contentId === 'kas') {
             const stmt = db.prepare("SELECT pdf_data FROM kas_pdf WHERE id = 1");
-            const row = stmt.getAsObject();
-            stmt.free();
-
-            if (row.pdf_data) {
-                showDebugMessage("📄 Memuat PDF KAS");
-                await loadPdfSlideshow(row.pdf_data, 'kasSlideshow');
-            } else {
-                showDebugMessage("⚠ PDF KAS kosong");
+            const result = stmt.getAsObject();
+            if (result.pdf_data) {
+                await loadPdfSlideshow(result.pdf_data, 'kasSlideshow');
             }
-        }
-
-        if (contentId === 'jadwal-kajian') {
+            stmt.free();
+        } else if (contentId === 'jadwal-kajian') {
             const stmt = db.prepare("SELECT pdf_data FROM jadwal_pdf WHERE id = 1");
-            const row = stmt.getAsObject();
-            stmt.free();
-
-            if (row.pdf_data) {
-                showDebugMessage("📄 Memuat PDF JADWAL");
-                await loadPdfSlideshow(row.pdf_data, 'jadwalSlideshow');
-            } else {
-                showDebugMessage("⚠ PDF JADWAL kosong");
+            const result = stmt.getAsObject();
+            if (result.pdf_data) {
+                await loadPdfSlideshow(result.pdf_data, 'jadwalSlideshow');
             }
+            stmt.free();
         }
-    } catch(err) {
-        showDebugMessage("❌ PDF gagal dimuat: " + err);
-        console.error(err);
+    } catch (error) {
+        console.error('Error loading PDF slideshow:', error);
+        // Jika error, lanjutkan tanpa slideshow (fungsi tetap berjalan)
+    } finally {
+        // Pastikan toggleSidebar selalu dipanggil, bahkan jika ada error
+      //  console.log('Calling toggleSidebar for contentId:', contentId); // Debug log
+        toggleSidebar();
     }
-
-    // === 7. Putar video jika section video ===
-    const videoEl = newSec.querySelector('video');
-    if (videoEl) {
-        videoEl.loop = true;
-        videoEl.play().catch(e => {
-            showDebugMessage("⚠ Video gagal autoplay: " + e);
-        });
+    
+    if (contentId === 'video-quran') {
+        const video = document.getElementById('videoQuran');
+        if (video) {
+            video.loop = true; // Set video untuk looping
+            video.play(); // Putar video otomatis
+        }
+    }else if (contentId === 'video-kajian') {
+        const video = document.getElementById('videoKajian');
+        if (video) {
+            video.loop = true; // Set video untuk looping
+            video.play(); // Putar video otomatis
+        }
+    }else if (contentId === 'khutbah') {
+        const video = document.getElementById('videoKhutbah');
+        if (video) {
+            video.loop = true; // Set video untuk looping
+            video.play(); // Putar video otomatis
+        }
     }
-
-    // === 8. Event listener AYAT/KAS/JADWAL ===
-    document.removeEventListener('keydown', handleAyatKeydown);
-    document.removeEventListener('keydown', handleKasKeydown);
-    document.removeEventListener('keydown', handleJadwalKeydown);
-
-    if (contentId === 'ayat') {
-        document.getElementById('ayat-ayat')?.classList.remove('hidden');
-        document.addEventListener('keydown', handleAyatKeydown);
-    }
-
-    if (contentId === 'kas') {
-        document.getElementById('kas-kas')?.classList.remove('hidden');
-        document.addEventListener('keydown', handleKasKeydown);
-    }
-
-    if (contentId === 'jadwal-kajian') {
-        document.getElementById('jadwal-jadwal')?.classList.remove('hidden');
-        document.addEventListener('keydown', handleJadwalKeydown);
-    }
-
-    // === 9. Toggle sidebar (aman) ===
-    toggleSidebar();
+    // toggleSidebar() sudah dipindah ke finally di atas untuk memastikan selalu dipanggil
+    // Tambahan untuk section ayat: Tambahkan event listener untuk keydown
+            if (contentId === 'ayat') {
+                const ayatForm = document.getElementById('ayat-ayat');
+            ayatForm.classList.toggle('hidden');
+                document.removeEventListener('keydown', handleAyatKeydown);
+                document.addEventListener('keydown', handleAyatKeydown);
+            }else {
+                document.removeEventListener('keydown', handleAyatKeydown);
+            }
+            
+            if (contentId === 'kas') {
+                const ayatForm = document.getElementById('kas-kas');
+            ayatForm.classList.toggle('hidden');
+                // Hapus listener sebelumnya jika ada
+                document.removeEventListener('keydown', handleKasKeydown);
+                // Tambahkan listener baru
+                document.addEventListener('keydown', handleKasKeydown);
+            }else {
+                // Jika bukan ayat, hapus listener
+                document.removeEventListener('keydown', handleKasKeydown);
+            }
+            
+            if (contentId === 'jadwal-kajian') {
+                const ayatForm = document.getElementById('jadwal-jadwal');
+            ayatForm.classList.toggle('hidden');
+                // Hapus listener sebelumnya jika ada
+                document.removeEventListener('keydown', handleJadwalKeydown);
+                // Tambahkan listener baru
+                document.addEventListener('keydown', handleJadwalKeydown);
+            }else {
+                // Jika bukan ayat, hapus listener
+                document.removeEventListener('keydown', handleJadwalKeydown);
+            } 
 }
-
 
 // helper: file -> base64 (only the base64 payload, no data: prefix)
 function fileToBase64(file) {
