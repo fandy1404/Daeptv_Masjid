@@ -85,7 +85,7 @@ window.addEventListener('load', async () => {
   await safeRun("updatePrayerTimes", async () => { if (typeof updatePrayerTimes === 'function') updatePrayerTimes(); });
   await safeRun("updateCountdowns", async () => { if (typeof updateCountdowns === 'function') updateCountdowns(); });
 
-  // restore active section safely
+  // restore active section safelysa
   await safeRun("restoreActiveSection", async () => {
     try {
       const activeSection = localStorage.getItem('activeSection');
@@ -521,142 +521,97 @@ function toggletema() {
 } */
 // Content navigation
 async function showContent(contentId) {
-    // Cek jika section 'video-quran' sedang aktif, lalu pause video dan reset ke awal
+    // --- PAUSE VIDEO SAAT PINDAH HALAMAN ---
     const currentActiveSection = document.querySelector('.content-section.active');
-    if (currentActiveSection && currentActiveSection.id === 'video-quran') {
-        const video = document.getElementById('videoQuran');
-        if (video) {
-            video.pause(); // Hentikan pemutaran video
-            video.currentTime = 0; // Reset video ke awal (opsional, hapus jika tidak ingin reset)
-        }
-    }else if (currentActiveSection && currentActiveSection.id === 'video-kajian') {
-        const video = document.getElementById('videoKajian');
-        if (video) {
-            video.pause(); // Hentikan pemutaran video
-            video.currentTime = 0; // Reset video ke awal (opsional, hapus jika tidak ingin reset)
-        }
-    }else if (currentActiveSection && currentActiveSection.id === 'khutbah') {
-        const video = document.getElementById('videoKhutbah');
-        if (video) {
-            video.pause(); // Hentikan pemutaran video
-            video.currentTime = 0; // Reset video ke awal (opsional, hapus jika tidak ingin reset)
+    if (currentActiveSection) {
+        const id = currentActiveSection.id;
+        const mapVideo = {
+            'video-quran': 'videoQuran',
+            'video-kajian': 'videoKajian',
+            'khutbah': 'videoKhutbah'
+        };
+        if (mapVideo[id]) {
+            const vid = document.getElementById(mapVideo[id]);
+            if (vid) { vid.pause(); vid.currentTime = 0; }
         }
     }
 
-    // Hide all content sections
-    const sections = document.querySelectorAll('.content-section');
-    sections.forEach(section => section.classList.remove('active'));
-    
-    // Remove active class from all menu items
-    const menuItems = document.querySelectorAll('.menu-item');
-    menuItems.forEach(item => item.classList.remove('active'));
-    
-    // Show selected content
+    // --- HIDE SEMUA SECTION & MENU ---
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+
+    // --- TAMPILKAN HALAMAN BARU ---
     document.getElementById(contentId).classList.add('active');
-    
-    // Add active class to clicked menu item
-   // event.target.classList.add('active');
-     if (event && event.target) {
-        event.target.classList.add('active');  // Untuk klik manual
+
+    // Tambah kelas active ke menu
+    if (event && event.target) {
+        event.target.classList.add('active');
     } else {
-        // Untuk restore: Cari menu item berdasarkan contentId (asumsikan ID menu item seperti 'menu-ayat')
         const menuItem = document.getElementById(`menu-${contentId}`);
-        if (menuItem) {
-            menuItem.classList.add('active');
-            console.log('Active class added to menu item:', `menu-${contentId}`);  // Debug log
-        } else {
-            console.warn('Menu item not found for contentId:', contentId);
-        }
-    } 
-    
-    // Tambahan: Load PDF dari BLOB untuk section ayat, kas, atau jadwal-kajian
+        if (menuItem) menuItem.classList.add('active');
+    }
+
+    // --- LOAD PDF ---
     try {
-        if (contentId === 'ayat') {
-            const stmt = db.prepare("SELECT pdf_data FROM ayat_pdf WHERE id = 1");
-            const result = stmt.getAsObject();
-            if (result.pdf_data) {
-                await loadPdfSlideshow(result.pdf_data, 'ayatSlideshow'); 
-            }
-            stmt.free();
-            //initFlipbook();
-        } else if (contentId === 'kas') {
-            const stmt = db.prepare("SELECT pdf_data FROM kas_pdf WHERE id = 1");
-            const result = stmt.getAsObject();
-            if (result.pdf_data) {
-                await loadPdfSlideshow(result.pdf_data, 'kasSlideshow');
-            }
-            stmt.free();
-        } else if (contentId === 'jadwal-kajian') {
-            const stmt = db.prepare("SELECT pdf_data FROM jadwal_pdf WHERE id = 1");
-            const result = stmt.getAsObject();
-            if (result.pdf_data) {
-                await loadPdfSlideshow(result.pdf_data, 'jadwalSlideshow');
-            }
+        const mapping = {
+            'ayat':   ['ayat_pdf', 'ayatSlideshow'],
+            'kas':    ['kas_pdf', 'kasSlideshow'],
+            'jadwal-kajian': ['jadwal_pdf', 'jadwalSlideshow']
+        };
+        if (mapping[contentId]) {
+            const [table, slideshow] = mapping[contentId];
+            const stmt = db.prepare(`SELECT pdf_data FROM ${table} WHERE id = 1`);
+            const res = stmt.getAsObject();
+            if (res.pdf_data) await loadPdfSlideshow(res.pdf_data, slideshow);
             stmt.free();
         }
-    } catch (error) {
-        console.error('Error loading PDF slideshow:', error);
-        // Jika error, lanjutkan tanpa slideshow (fungsi tetap berjalan)
+    } catch (e) {
+        console.error('Error loading PDF slideshow:', e);
     } finally {
-        // Pastikan toggleSidebar selalu dipanggil, bahkan jika ada error
-      //  console.log('Calling toggleSidebar for contentId:', contentId); // Debug log
         toggleSidebar();
     }
-    
-    if (contentId === 'video-quran') {
-        const video = document.getElementById('videoQuran');
-        if (video) {
-            video.loop = true; // Set video untuk looping
-            video.play(); // Putar video otomatis
-        }
-    }else if (contentId === 'video-kajian') {
-        const video = document.getElementById('videoKajian');
-        if (video) {
-            video.loop = true; // Set video untuk looping
-            video.play(); // Putar video otomatis
-        }
-    }else if (contentId === 'khutbah') {
-        const video = document.getElementById('videoKhutbah');
-        if (video) {
-            video.loop = true; // Set video untuk looping
-            video.play(); // Putar video otomatis
-        }
+
+    // --- AUTO PLAY VIDEO ---
+    const autoMap = {
+        'video-quran': 'videoQuran',
+        'video-kajian': 'videoKajian',
+        'khutbah': 'videoKhutbah'
+    };
+    if (autoMap[contentId]) {
+        const video = document.getElementById(autoMap[contentId]);
+        if (video) { video.loop = true; video.play(); }
     }
-    // toggleSidebar() sudah dipindah ke finally di atas untuk memastikan selalu dipanggil
-    // Tambahan untuk section ayat: Tambahkan event listener untuk keydown
-            if (contentId === 'ayat') {
-                const ayatForm = document.getElementById('ayat-ayat');
-            ayatForm.classList.toggle('hidden');
-                document.removeEventListener('keydown', handleAyatKeydown);
-                document.addEventListener('keydown', handleAyatKeydown);
-            }else {
-                document.removeEventListener('keydown', handleAyatKeydown);
-            }
-            
-            if (contentId === 'kas') {
-                const ayatForm = document.getElementById('kas-kas');
-            ayatForm.classList.toggle('hidden');
-                // Hapus listener sebelumnya jika ada
-                document.removeEventListener('keydown', handleKasKeydown);
-                // Tambahkan listener baru
-                document.addEventListener('keydown', handleKasKeydown);
-            }else {
-                // Jika bukan ayat, hapus listener
-                document.removeEventListener('keydown', handleKasKeydown);
-            }
-            
-            if (contentId === 'jadwal-kajian') {
-                const ayatForm = document.getElementById('jadwal-jadwal');
-            ayatForm.classList.toggle('hidden');
-                // Hapus listener sebelumnya jika ada
-                document.removeEventListener('keydown', handleJadwalKeydown);
-                // Tambahkan listener baru
-                document.addEventListener('keydown', handleJadwalKeydown);
-            }else {
-                // Jika bukan ayat, hapus listener
-                document.removeEventListener('keydown', handleJadwalKeydown);
-            } 
+
+    // --- KEYDOWN HANDLER ---
+    const keyMap = {
+        'ayat': ['ayat-ayat', handleAyatKeydown],
+        'kas': ['kas-kas', handleKasKeydown],
+        'jadwal-kajian': ['jadwal-jadwal', handleJadwalKeydown]
+    };
+    // remove all old listeners
+    document.removeEventListener('keydown', handleAyatKeydown);
+    document.removeEventListener('keydown', handleKasKeydown);
+    document.removeEventListener('keydown', handleJadwalKeydown);
+
+    if (keyMap[contentId]) {
+        const [formId, handler] = keyMap[contentId];
+        const frm = document.getElementById(formId);
+        if (frm) frm.classList.toggle('hidden');
+        document.addEventListener('keydown', handler);
+    }
+
+    toggleSidebar();
+    // --- UPDATE PRAYER UI SETELAH HALAMAN TAMPIL ---
+    setTimeout(() => {
+        if (typeof refreshPrayerTimesUI === 'function') {
+            safeRunQuiet("refreshPrayerTimesUI", refreshPrayerTimesUI);
+        }
+        if (typeof updatePrayerTimes === 'function') {
+            safeRunQuiet("updatePrayerTimes", updatePrayerTimes);
+        }
+    }, 50);
 }
+
 
 // -------------------- helpers existing (keep) --------------------
 function fileToBase64(file) {
