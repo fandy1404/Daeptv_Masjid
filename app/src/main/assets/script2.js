@@ -192,72 +192,64 @@ async function loadAdminFormFromDB() {
       showDebugMessage("⚠ DB belum siap saat loadAdminFormFromDB");
       return;
     }
-    // ==========================
-    // 1. LOAD SETTINGS TABLE
-    // ==========================
-    let r = db.exec("SELECT * FROM settings WHERE id = 1");
-    if (r.length > 0) {
-      const row = r[0].values[0];
 
-      const masjidName     = row[1] ?? "";
-      const masjidAddress  = row[2] ?? "";
-      const runningText    = row[3] ?? "";
-      const quoteText      = row[4] ?? "";
-      const quoteSource    = row[5] ?? "";
-
-      document.getElementById("adminMasjidName").value    = masjidName;
-      document.getElementById("adminMasjidAddress").value = masjidAddress;
-      document.getElementById("adminRunningText").value   = runningText;
-      document.getElementById("adminQuoteText").value     = quoteText;
-      document.getElementById("adminQuoteSource").value   = quoteSource;
+    // Use settings/masjid_info consistently:
+    // prefer masjid_info if exists, otherwise fallback to settings table
+    let r;
+    if (tableExists('masjid_info')) {
+      r = db.exec("SELECT name, address FROM masjid_info WHERE id = 1");
+      if (r.length && r[0].values.length) {
+        document.getElementById("adminMasjidName").value = r[0].values[0][0] || "";
+        document.getElementById("adminMasjidAddress").value = r[0].values[0][1] || "";
+      }
+    } else if (tableExists('settings')) {
+      r = db.exec("SELECT mosque_name FROM settings WHERE id = 1");
+      if (r.length && r[0].values.length) {
+        document.getElementById("adminMasjidName").value = r[0].values[0][0] || "";
+      }
     }
-    // ==========================
-    // 2. LOAD PRAYER TIMES
-    // ==========================
-    r = db.exec("SELECT * FROM prayer_times WHERE id = 1");
-    if (r.length > 0) {
+
+    // prayer times (safe index mapping)
+    r = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq FROM prayer_times WHERE id = 1");
+    if (r.length && r[0].values.length) {
       const p = r[0].values[0];
-
-      document.getElementById('adminSubuh').value   = p[1] || "";
-      document.getElementById('adminDzuhur').value  = p[2] || "";
-      document.getElementById('adminAshar').value   = p[3] || "";
-      document.getElementById('adminMaghrib').value = p[4] || "";
-      document.getElementById('adminIsya').value    = p[5] || "";
-      document.getElementById('adminImsak').value   = p[6] || "";
-      document.getElementById('adminSyuruq').value  = p[7] || "";
+      document.getElementById('adminSubuh').value   = p[0] || "";
+      document.getElementById('adminDzuhur').value  = p[1] || "";
+      document.getElementById('adminAshar').value   = p[2] || "";
+      document.getElementById('adminMaghrib').value = p[3] || "";
+      document.getElementById('adminIsya').value    = p[4] || "";
+      document.getElementById('adminImsak').value   = p[5] || "";
+      document.getElementById('adminSyuruq').value  = p[6] || "";
     }
-    // ==========================
-    // 3. LOAD IQOMAH DELAYS
-    // ==========================
-    r = db.exec("SELECT * FROM iqomah_delays WHERE id = 1");
-    if (r.length > 0) {
+
+    // iqomah delays
+    r = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya FROM iqomah_delays WHERE id = 1");
+    if (r.length && r[0].values.length) {
       const d = r[0].values[0];
-
-      document.getElementById('delaySubuh').value   = d[1] ?? 0;
-      document.getElementById('delayDzuhur').value  = d[2] ?? 0;
-      document.getElementById('delayAshar').value   = d[3] ?? 0;
-      document.getElementById('delayMaghrib').value = d[4] ?? 0;
-      document.getElementById('delayIsya').value    = d[5] ?? 0;
+      document.getElementById('delaySubuh').value   = (d[0] != null) ? d[0] : 0;
+      document.getElementById('delayDzuhur').value  = (d[1] != null) ? d[1] : 0;
+      document.getElementById('delayAshar').value   = (d[2] != null) ? d[2] : 0;
+      document.getElementById('delayMaghrib').value = (d[3] != null) ? d[3] : 0;
+      document.getElementById('delayIsya').value    = (d[4] != null) ? d[4] : 0;
     }
+
+    // quote & running text
+    r = db.exec("SELECT text, source FROM quote WHERE id = 1");
+    if (r.length && r[0].values.length) {
+      document.getElementById('adminQuoteText').value = r[0].values[0][0] || "";
+      document.getElementById('adminQuoteSource').value = r[0].values[0][1] || "";
+    }
+    r = db.exec("SELECT text FROM running_text WHERE id = 1");
+    if (r.length && r[0].values.length) {
+      document.getElementById('adminRunningText').value = r[0].values[0][0] || "";
+    }
+
     showDebugMessage("📝 Admin form terisi dari database");
   } catch (e) {
-    showDebugMessage("❌ loadAdminFormFromDB ERROR: " + e.message);
+    showDebugMessage("❌ loadAdminFormFromDB ERROR: " + (e?.message||e), {level:'error'});
   }
 }
 
-function updateClock() {
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = now.getSeconds();
-
-    document.getElementById('h').textContent = hours;
-    document.getElementById('m').textContent = minutes;
-
-    // separator "hilang" tapi tidak memengaruhi layout
-    const sep = document.getElementById('sep');
-    sep.style.opacity = (seconds % 2 === 0) ? '1' : '0';
-}
 
 
 // Date functions
@@ -676,14 +668,45 @@ async function saveMediaBase64(key, file) {
     }
 }
 
+// ==== helper: simpan semua file dari form ke media_files ====
+async function saveAllMediaFromForm() {
+    try {
+        // mapping key -> inputId
+        const map = {
+            "hero_image": "adminHeroImage",
+            "video_quran": "adminVideoQuran",
+            "video_kajian": "adminVideoKajian",
+            "video_khutbah": "adminVideoKhutbah",
+            "audio": "adminAudio",
+            "pdf": "adminPdf" // jika Anda punya input untuk PDF, beri id ini
+        };
 
-// final saveAdminSettings
+        for (const key of Object.keys(map)) {
+            const input = document.getElementById(map[key]);
+            if (!input) continue;
+            const file = (input.files && input.files[0]) ? input.files[0] : null;
+            if (file) {
+                await saveMediaBase64(key, file); // sudah ada fungsi ini
+                // juga, untuk file besar Anda bisa simpan binary ke IndexedDB (optional)
+                // contoh: saveFileToIndexedDB(key, await file.arrayBuffer());
+            } else {
+                showDebugMessage("ℹ Tidak ada file di input: " + map[key]);
+            }
+        }
+    } catch (e) {
+        showDebugMessage("❌ saveAllMediaFromForm error: " + (e?.message||e), {level:'error'});
+    }
+}
+
+// ==== perbaikan saveAdminSettings: simpan media dulu, lalu DB, lalu reload UI ====
 async function saveAdminSettings() {
   const btn = document.getElementById('simpanadmin');
   if (btn) btn.disabled = true;
   showDebugMessage("⏳ ▶ Menyimpan pengaturan admin...", {level:'info', persist:false});
   try {
-    // collect values
+    if (!db) throw new Error("DB belum siap");
+
+    // collect values (sama seperti sebelumnya)
     const name = (document.getElementById('adminMasjidName')?.value || "").trim();
     const address = (document.getElementById('adminMasjidAddress')?.value || "").trim();
 
@@ -709,41 +732,36 @@ async function saveAdminSettings() {
     const quoteSource = document.getElementById('adminQuoteSource')?.value || '';
     const runningText = document.getElementById('adminRunningText')?.value || '';
 
-    // update SQL tables: create masjid_info table if not exists, then insert/update
-    if (!db) throw new Error("DB belum siap");
+    // 0) simpan media (jika ada) sebelum menyimpan DB
+    await saveAllMediaFromForm();
 
-    db.run(`CREATE TABLE IF NOT EXISTS masjid_info (
-      id INTEGER PRIMARY KEY,
-      name TEXT,
-      address TEXT
-    );`);
-
+    // 1) simpan masjid_info (atau settings) -> pastikan tabel ada
+    db.run(`CREATE TABLE IF NOT EXISTS masjid_info (id INTEGER PRIMARY KEY, name TEXT, address TEXT);`);
     db.run(`INSERT OR REPLACE INTO masjid_info (id, name, address) VALUES (1, ?, ?)`, [name, address]);
 
-    // prayer_times table
+    // 2) prayer_times
     db.run(`CREATE TABLE IF NOT EXISTS prayer_times (
       id INTEGER PRIMARY KEY,
       subuh TEXT, dzuhur TEXT, ashar TEXT, maghrib TEXT, isya TEXT, imsak TEXT, syuruq TEXT
     );`);
-
     db.run(`INSERT OR REPLACE INTO prayer_times (id, subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq)
       VALUES (1, ?,?,?,?,?,?,?)`,
       [prayerTimes.subuh, prayerTimes.dzuhur, prayerTimes.ashar, prayerTimes.maghrib, prayerTimes.isya, prayerTimes.imsak, prayerTimes.syuruq]
     );
 
-    // iqomah delays
+    // 3) iqomah delays
     db.run(`CREATE TABLE IF NOT EXISTS iqomah_delays (id INTEGER PRIMARY KEY, subuh INTEGER, dzuhur INTEGER, ashar INTEGER, maghrib INTEGER, isya INTEGER)`);
     db.run(`INSERT OR REPLACE INTO iqomah_delays (id, subuh, dzuhur, ashar, maghrib, isya) VALUES (1,?,?,?,?,?)`,
       [iqomah.subuh, iqomah.dzuhur, iqomah.ashar, iqomah.maghrib, iqomah.isya]);
 
-    // quote & running text
+    // 4) quote & running text
     db.run(`CREATE TABLE IF NOT EXISTS quote (id INTEGER PRIMARY KEY, text TEXT, source TEXT)`);
     db.run(`INSERT OR REPLACE INTO quote (id, text, source) VALUES (1, ?, ?)`, [quoteText, quoteSource]);
 
     db.run(`CREATE TABLE IF NOT EXISTS running_text (id INTEGER PRIMARY KEY, text TEXT)`);
     db.run(`INSERT OR REPLACE INTO running_text (id, text) VALUES (1, ?)`, [runningText]);
 
-    // update in-memory settings object so UI reads from it immediately
+    // 5) update window.settings in-memory
     window.settings = window.settings || {};
     window.settings.masjidName = name;
     window.settings.masjidAddress = address;
@@ -752,34 +770,24 @@ async function saveAdminSettings() {
     window.settings.quote = {text: quoteText, source: quoteSource};
     window.settings.runningText = runningText;
 
-    // persist DB to IndexedDB
+    // 6) persist DB to IndexedDB
     await saveDatabaseToIndexedDB();
 
-    // update UI immediately (so user sees change without reload)
-    try {
-      if (typeof loadSettings === 'function') {
-        await loadSettings(); // this will read from DB and push values to UI
-      } else {
-        // fallback: directly set the fields we know
-        const elName = document.getElementById('masjidName');
-        if (elName) elName.textContent = name;
-        const elAddr = document.getElementById('masjidAddress');
-        if (elAddr) elAddr.textContent = address;
-        // quote, runningText etc:
-        const qEl = document.getElementById('quoteText'); if (qEl) qEl.textContent = quoteText;
-        const rEl = document.getElementById('runningText'); if (rEl) rEl.textContent = runningText;
-      }
-    } catch(e){ console.warn("loadSettings() fallback failed", e); }
+    // 7) reload / push data ke UI dari DB (pastikan ini membaca data dari DB, bukan dari defaults)
+    if (typeof loadSettings === 'function') {
+        await loadSettings(); // baca media via loadMediaToUI juga
+    }
+    if (typeof loadAdminFormFromDB === 'function') {
+        await loadAdminFormFromDB();
+    }
 
-    // close admin panel if function exists
-    //if (typeof toggleAdmin === 'function') toggleAdmin();
-   // showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
-      // Berhasil simpan ke SQLite + IndexedDB
-        showDebugMessage("✅ Pengaturan admin berhasil disimpan");
-        // Tunggu 100ms supaya UI sudah update, lalu tutup panel
-        setTimeout(() => {
-            if (typeof toggleAdmin === 'function') toggleAdmin();
-        }, 100);
+    // 8) beri info dan toggle admin panel setelah UI ter-update
+    showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
+
+    // pastikan toggle terjadi setelah UI terupdate: tunggu sedikit / gunakan await
+    setTimeout(() => {
+        if (typeof toggleAdmin === 'function') toggleAdmin();
+    }, 150);
 
   } catch (err) {
     console.error('saveAdminSettings error', err);
@@ -789,7 +797,6 @@ async function saveAdminSettings() {
     if (btn) btn.disabled = false;
   }
 }
-
 
 function saveFileToIndexedDB(key, uint8) {
   return new Promise((resolve) => {
@@ -993,21 +1000,35 @@ function loadMediaToUI(key, elementId) {
 
         const mime = r[0].values[0][0];
         const base64 = r[0].values[0][1];
-
         const blob = base64ToBlob(base64, mime);
+        if (!blob) return;
         const url = URL.createObjectURL(blob);
 
         const el = document.getElementById(elementId);
-        if (el) {
+        if (!el) return;
+
+        // set src depending on element type
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'img' || el.nodeName === 'IMG') {
             el.src = url;
-            showDebugMessage("▶ Media loaded: " + key);
+        } else if (tag === 'video') {
+            el.src = url;
+            el.load();
+        } else if (tag === 'audio') {
+            el.src = url;
+            el.load();
+        } else if (tag === 'iframe' || tag === 'embed' || tag === 'object') {
+            // for PDFs or embedded content
+            el.src = url;
+        } else {
+            // fallback: set background-image for divs
+            el.style.backgroundImage = `url(${url})`;
         }
+        showDebugMessage("▶ Media loaded: " + key);
     } catch (e) {
         showDebugMessage("❌ Gagal load media " + key + ": " + e.message, {level:'error'});
     }
 }
-
-
 
 // Fungsi untuk menyimpan database ke IndexedDB
 async function saveDatabaseToIndexedDB() {
