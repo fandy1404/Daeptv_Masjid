@@ -200,7 +200,7 @@ function updateClock() {
     sep.style.opacity = (seconds % 2 === 0) ? '1' : '0';
 }
 
-// ==================================================== //
+
 async function loadAdminFormFromDB() {
   try {
     if (!db) {
