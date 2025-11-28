@@ -193,64 +193,65 @@ async function loadAdminFormFromDB() {
       return;
     }
 
-    // Use settings/masjid_info consistently:
-    // prefer masjid_info if exists, otherwise fallback to settings table
-    let r;
-    if (tableExists('masjid_info')) {
-      r = db.exec("SELECT name, address FROM masjid_info WHERE id = 1");
+    // masjid_info
+    try {
+      const r = db.exec("SELECT name, address FROM masjid_info WHERE id = 1");
       if (r.length && r[0].values.length) {
         document.getElementById("adminMasjidName").value = r[0].values[0][0] || "";
         document.getElementById("adminMasjidAddress").value = r[0].values[0][1] || "";
       }
-    } else if (tableExists('settings')) {
-      r = db.exec("SELECT mosque_name FROM settings WHERE id = 1");
-      if (r.length && r[0].values.length) {
-        document.getElementById("adminMasjidName").value = r[0].values[0][0] || "";
+    } catch(e){}
+
+    // prayer_times
+    try {
+      const p = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq FROM prayer_times WHERE id = 1");
+      if (p.length && p[0].values.length) {
+        const t = p[0].values[0];
+        document.getElementById('adminSubuh').value   = t[0] || "";
+        document.getElementById('adminDzuhur').value  = t[1] || "";
+        document.getElementById('adminAshar').value   = t[2] || "";
+        document.getElementById('adminMaghrib').value = t[3] || "";
+        document.getElementById('adminIsya').value    = t[4] || "";
+        document.getElementById('adminImsak').value   = t[5] || "";
+        document.getElementById('adminSyuruq').value  = t[6] || "";
       }
-    }
+    } catch(e){}
 
-    // prayer times (safe index mapping)
-    r = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq FROM prayer_times WHERE id = 1");
-    if (r.length && r[0].values.length) {
-      const p = r[0].values[0];
-      document.getElementById('adminSubuh').value   = p[0] || "";
-      document.getElementById('adminDzuhur').value  = p[1] || "";
-      document.getElementById('adminAshar').value   = p[2] || "";
-      document.getElementById('adminMaghrib').value = p[3] || "";
-      document.getElementById('adminIsya').value    = p[4] || "";
-      document.getElementById('adminImsak').value   = p[5] || "";
-      document.getElementById('adminSyuruq').value  = p[6] || "";
-    }
-
-    // iqomah delays
-    r = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya FROM iqomah_delays WHERE id = 1");
-    if (r.length && r[0].values.length) {
-      const d = r[0].values[0];
-      document.getElementById('delaySubuh').value   = (d[0] != null) ? d[0] : 0;
-      document.getElementById('delayDzuhur').value  = (d[1] != null) ? d[1] : 0;
-      document.getElementById('delayAshar').value   = (d[2] != null) ? d[2] : 0;
-      document.getElementById('delayMaghrib').value = (d[3] != null) ? d[3] : 0;
-      document.getElementById('delayIsya').value    = (d[4] != null) ? d[4] : 0;
-    }
+    // iqomah
+    try {
+      const d = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya FROM iqomah_delays WHERE id = 1");
+      if (d.length && d[0].values.length) {
+        const x = d[0].values[0];
+        document.getElementById('delaySubuh').value   = (x[0] != null) ? x[0] : 0;
+        document.getElementById('delayDzuhur').value  = (x[1] != null) ? x[1] : 0;
+        document.getElementById('delayAshar').value   = (x[2] != null) ? x[2] : 0;
+        document.getElementById('delayMaghrib').value = (x[3] != null) ? x[3] : 0;
+        document.getElementById('delayIsya').value    = (x[4] != null) ? x[4] : 0;
+      }
+    } catch(e){}
 
     // quote & running text
-    r = db.exec("SELECT text, source FROM quote WHERE id = 1");
-    if (r.length && r[0].values.length) {
-      document.getElementById('adminQuoteText').value = r[0].values[0][0] || "";
-      document.getElementById('adminQuoteSource').value = r[0].values[0][1] || "";
-    }
-    r = db.exec("SELECT text FROM running_text WHERE id = 1");
-    if (r.length && r[0].values.length) {
-      document.getElementById('adminRunningText').value = r[0].values[0][0] || "";
-    }
+    try {
+      const q = db.exec("SELECT text, source FROM quote WHERE id = 1");
+      if (q.length && q[0].values.length) {
+        document.getElementById('adminQuoteText').value = q[0].values[0][0] || "";
+        document.getElementById('adminQuoteSource').value = q[0].values[0][1] || "";
+      }
+    } catch(e){}
+    try {
+      const rt = db.exec("SELECT text FROM running_text WHERE id = 1");
+      if (rt.length && rt[0].values.length) {
+        document.getElementById('adminRunningText').value = rt[0].values[0][0] || "";
+      }
+    } catch(e){}
 
+    // Note: file inputs (adminHeroImage, adminVideoQuran, ...) CANNOT be programmatically set for security.
+    // We rely on loadMediaToUI() to show preview in the main UI.
     showDebugMessage("📝 Admin form terisi dari database");
   } catch (e) {
     showDebugMessage("❌ loadAdminFormFromDB ERROR: " + (e?.message||e), {level:'error'});
   }
 }
-
-
 
 // Date functions
 function updateDates() {
@@ -632,13 +633,12 @@ async function showContent(contentId) {
             } 
 }
 
-// helper: file -> base64 (only the base64 payload, no data: prefix)
+// -------------------- helpers existing (keep) --------------------
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
             const res = reader.result;
-            // res = "data:...;base64,AAAA..."
             const parts = res.split(',');
             resolve(parts.length > 1 ? parts[1] : parts[0]);
         };
@@ -646,58 +646,58 @@ function fileToBase64(file) {
         reader.readAsDataURL(file);
     });
 }
-// Simpan media ke SQLite (aman untuk WebView Android)
+
 async function saveMediaBase64(key, file) {
     if (!file) {
         showDebugMessage("ℹ Tidak ada file untuk key: " + key);
         return;
     }
-
     try {
         const base64 = await fileToBase64(file);
         const mime = file.type || "application/octet-stream";
-
+        db.run(
+            `CREATE TABLE IF NOT EXISTS media_files (key TEXT PRIMARY KEY, mime TEXT, base64 TEXT);`
+        );
         db.run(
             `INSERT OR REPLACE INTO media_files (key, mime, base64) VALUES (?,?,?)`,
             [key, mime, base64]
         );
-
         showDebugMessage("💾 Media disimpan: " + key);
     } catch (err) {
-        showDebugMessage("❌ Gagal simpan media " + key + ": " + err.message, {level:"error"});
+        showDebugMessage("❌ Gagal simpan media " + key + ": " + (err?.message || err), {level:"error"});
     }
 }
 
-// ==== helper: simpan semua file dari form ke media_files ====
+// -------------------- saveAllMediaFromForm --------------------
 async function saveAllMediaFromForm() {
-    try {
-        // mapping key -> inputId
-        const map = {
-            "hero_image": "adminHeroImage",
-            "video_quran": "adminVideoQuran",
-            "video_kajian": "adminVideoKajian",
-            "video_khutbah": "adminVideoKhutbah",
-            "audio": "adminAudio",
-            "pdf": "adminPdf" // jika Anda punya input untuk PDF, beri id ini
-        };
+    // mapping dari key DB -> id input form
+    const map = {
+        "hero_image": "adminHeroImage",
+        "video_quran": "adminVideoQuran",
+        "video_kajian": "adminVideoKajian",
+        "video_khutbah": "adminVideoKhutbah",
+        "audio": "adminAudio"
+        // jika ada pdf uploader yang ingin disimpan ke media_files, tambahkan mis. "pdf": "adminPdf"
+    };
 
-        for (const key of Object.keys(map)) {
+    for (const key of Object.keys(map)) {
+        try {
             const input = document.getElementById(map[key]);
-            if (!input) continue;
+            if (!input) {
+                showDebugMessage("⚠ input tidak ditemukan: " + map[key]);
+                continue;
+            }
             const file = (input.files && input.files[0]) ? input.files[0] : null;
             if (file) {
-                await saveMediaBase64(key, file); // sudah ada fungsi ini
-                // juga, untuk file besar Anda bisa simpan binary ke IndexedDB (optional)
-                // contoh: saveFileToIndexedDB(key, await file.arrayBuffer());
+                await saveMediaBase64(key, file);
             } else {
                 showDebugMessage("ℹ Tidak ada file di input: " + map[key]);
             }
+        } catch (e) {
+            showDebugMessage("❌ saveAllMediaFromForm error key=" + key + " : " + (e?.message||e), {level:'error'});
         }
-    } catch (e) {
-        showDebugMessage("❌ saveAllMediaFromForm error: " + (e?.message||e), {level:'error'});
     }
 }
-
 // ==== perbaikan saveAdminSettings: simpan media dulu, lalu DB, lalu reload UI ====
 async function saveAdminSettings() {
   const btn = document.getElementById('simpanadmin');
@@ -706,7 +706,7 @@ async function saveAdminSettings() {
   try {
     if (!db) throw new Error("DB belum siap");
 
-    // collect values (sama seperti sebelumnya)
+    // collect values
     const name = (document.getElementById('adminMasjidName')?.value || "").trim();
     const address = (document.getElementById('adminMasjidAddress')?.value || "").trim();
 
@@ -732,10 +732,10 @@ async function saveAdminSettings() {
     const quoteSource = document.getElementById('adminQuoteSource')?.value || '';
     const runningText = document.getElementById('adminRunningText')?.value || '';
 
-    // 0) simpan media (jika ada) sebelum menyimpan DB
+    // 0) simpan media dulu (jika ada)
     await saveAllMediaFromForm();
 
-    // 1) simpan masjid_info (atau settings) -> pastikan tabel ada
+    // 1) simpan masjid_info
     db.run(`CREATE TABLE IF NOT EXISTS masjid_info (id INTEGER PRIMARY KEY, name TEXT, address TEXT);`);
     db.run(`INSERT OR REPLACE INTO masjid_info (id, name, address) VALUES (1, ?, ?)`, [name, address]);
 
@@ -761,7 +761,7 @@ async function saveAdminSettings() {
     db.run(`CREATE TABLE IF NOT EXISTS running_text (id INTEGER PRIMARY KEY, text TEXT)`);
     db.run(`INSERT OR REPLACE INTO running_text (id, text) VALUES (1, ?)`, [runningText]);
 
-    // 5) update window.settings in-memory
+    // 5) update in-memory settings
     window.settings = window.settings || {};
     window.settings.masjidName = name;
     window.settings.masjidAddress = address;
@@ -773,21 +773,13 @@ async function saveAdminSettings() {
     // 6) persist DB to IndexedDB
     await saveDatabaseToIndexedDB();
 
-    // 7) reload / push data ke UI dari DB (pastikan ini membaca data dari DB, bukan dari defaults)
-    if (typeof loadSettings === 'function') {
-        await loadSettings(); // baca media via loadMediaToUI juga
-    }
-    if (typeof loadAdminFormFromDB === 'function') {
-        await loadAdminFormFromDB();
-    }
+    // 7) reload UI + admin form from DB (ensure UI reads from DB)
+    if (typeof loadSettings === 'function') await loadSettings();
+    if (typeof loadAdminFormFromDB === 'function') await loadAdminFormFromDB();
 
-    // 8) beri info dan toggle admin panel setelah UI ter-update
+    // 8) info + toggle admin panel (after UI updated)
     showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
-
-    // pastikan toggle terjadi setelah UI terupdate: tunggu sedikit / gunakan await
-    setTimeout(() => {
-        if (typeof toggleAdmin === 'function') toggleAdmin();
-    }, 150);
+    setTimeout(() => { if (typeof toggleAdmin === 'function') toggleAdmin(); }, 150);
 
   } catch (err) {
     console.error('saveAdminSettings error', err);
@@ -914,70 +906,83 @@ function tableExists(name) {
 async function loadSettings() {
   try {
     window.settings = window.settings || {};
-    // default fallback: keep existing defaults if DB empty
-    // MASJID INFO
-    if (tableExists('masjid_info')) {
+
+    // MASJID INFO (try/catch safe queries)
+    try {
       const r = db.exec("SELECT name, address FROM masjid_info WHERE id = 1");
       if (r.length && r[0].values.length) {
-        window.settings.masjidName = r[0].values[0][0] || window.settings.masjidName;
-        window.settings.masjidAddress = r[0].values[0][1] || window.settings.masjidAddress;
-        const eln = document.getElementById('masjidName'); if (eln) eln.textContent = window.settings.masjidName;
-        const ela = document.getElementById('masjidAddress'); if (ela) ela.textContent = window.settings.masjidAddress;
+        const name = r[0].values[0][0] || "";
+        const address = r[0].values[0][1] || "";
+        window.settings.masjidName = name;
+        window.settings.masjidAddress = address;
+        const eln = document.getElementById('masjidName'); if (eln) eln.textContent = name;
+        const ela = document.getElementById('masjidAddress'); if (ela) ela.textContent = address;
       }
-    }
+    } catch(e){ /* table may not exist - ignore */ }
 
     // PRAYER TIMES
-    if (tableExists('prayer_times')) {
+    try {
       const p = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq FROM prayer_times WHERE id = 1");
       if (p.length && p[0].values.length) {
         const t = p[0].values[0];
         window.settings.prayerTimes = { subuh:t[0], dzuhur:t[1], ashar:t[2], maghrib:t[3], isya:t[4], imsak:t[5], syuruq:t[6] };
       }
-    }
+    } catch(e){ /* no table */ }
 
     // IQOMAH
-    if (tableExists('iqomah_delays')) {
+    try {
       const d = db.exec("SELECT subuh, dzuhur, ashar, maghrib, isya FROM iqomah_delays WHERE id = 1");
       if (d.length && d[0].values.length) {
         const x = d[0].values[0];
         window.settings.iqomahDelays = { subuh:x[0], dzuhur:x[1], ashar:x[2], maghrib:x[3], isya:x[4] };
       }
-    }
+    } catch(e){}
 
     // QUOTE
-    if (tableExists('quote')) {
+    try {
       const q = db.exec("SELECT text, source FROM quote WHERE id = 1");
       if (q.length && q[0].values.length) {
         window.settings.quote = { text:q[0].values[0][0], source:q[0].values[0][1] };
         const qEl = document.getElementById('quoteText'); if (qEl) qEl.textContent = window.settings.quote.text;
         const sEl = document.getElementById('quoteSource'); if (sEl) sEl.textContent = window.settings.quote.source;
       }
-    }
+    } catch(e){}
 
     // RUNNING TEXT
-    if (tableExists('running_text')) {
+    try {
       const rt = db.exec("SELECT text FROM running_text WHERE id = 1");
       if (rt.length && rt[0].values.length) {
         window.settings.runningText = rt[0].values[0][0];
-        const rEl = document.getElementById('runningText'); if (rEl) rEl.textContent = window.settings.runningText;
+        // you have several running text areas
+        const runningIds = ['runningText1','runningText2','runningText3','runningText4','runningText5','runningText6','runningText7'];
+        runningIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = window.settings.runningText;
+        });
       }
-    }
+    } catch(e){}
 
-    // media/tables remained as-is (load later on demand)
+    // Render prayer times into all containers you have in DOM
+    const prayerContainers = [
+      'prayerTimes', 'prayerTimesAyat', 'prayerTimesVideoQuran', 'prayerTimesKas',
+      'prayerTimesJadwalKajian', 'prayerTimesVideoKajian', 'prayerTimesKhutbah'
+    ];
+    renderPrayerTimes(window.settings.prayerTimes || {}, prayerContainers);
+
+    // LOAD MEDIA -> ensure keys match what you save
     loadMediaToUI("hero_image", "heroImage");
     loadMediaToUI("video_quran", "videoQuran");
     loadMediaToUI("video_kajian", "videoKajian");
     loadMediaToUI("video_khutbah", "videoKhutbah");
     loadMediaToUI("audio", "audioPlayer");
-    loadMediaToUI("pdf", "pdfViewer"); // jika ada iframe/pdf
+    // for any pdf viewers/slideshows you store as media, call loadMediaToUI with correct key & element
 
     showDebugMessage("▶ loadSettings selesai", {level:'info', persist:false});
   } catch (e) {
     showDebugMessage("❌ loadSettings ERROR: " + (e?.message || e), {level:'error', persist:true});
   }
 }
-
-// base64 → Blob
+// -------------------- loadMediaToUI (robust) --------------------
 function base64ToBlob(base64, mime) {
     try {
         const byteChars = atob(base64);
@@ -987,49 +992,78 @@ function base64ToBlob(base64, mime) {
         }
         return new Blob([new Uint8Array(byteNumbers)], { type: mime });
     } catch (e) {
-        showDebugMessage("❌ base64ToBlob error: " + e.message, {level:"error"});
+        showDebugMessage("❌ base64ToBlob error: " + (e?.message||e), {level:"error"});
         return null;
     }
 }
 
-// Load media ke UI
 function loadMediaToUI(key, elementId) {
     try {
+        if (!db) return;
         const r = db.exec(`SELECT mime, base64 FROM media_files WHERE key='${key}'`);
-        if (!(r.length && r[0].values.length)) return;
-
+        if (!(r.length && r[0].values.length)) {
+            // no media stored
+            return;
+        }
         const mime = r[0].values[0][0];
         const base64 = r[0].values[0][1];
         const blob = base64ToBlob(base64, mime);
         if (!blob) return;
         const url = URL.createObjectURL(blob);
-
         const el = document.getElementById(elementId);
         if (!el) return;
 
-        // set src depending on element type
         const tag = el.tagName.toLowerCase();
-        if (tag === 'img' || el.nodeName === 'IMG') {
+        if (tag === 'img') {
             el.src = url;
         } else if (tag === 'video') {
-            el.src = url;
+            // set source child if exists
+            const source = el.querySelector('source');
+            if (source) {
+                source.src = url;
+            } else {
+                el.src = url;
+            }
             el.load();
         } else if (tag === 'audio') {
-            el.src = url;
+            const source = el.querySelector('source');
+            if (source) source.src = url; else el.src = url;
             el.load();
         } else if (tag === 'iframe' || tag === 'embed' || tag === 'object') {
-            // for PDFs or embedded content
             el.src = url;
         } else {
-            // fallback: set background-image for divs
+            // fallback: treat as background image for div
             el.style.backgroundImage = `url(${url})`;
+            el.style.backgroundSize = "cover";
+            el.style.backgroundPosition = "center";
         }
         showDebugMessage("▶ Media loaded: " + key);
     } catch (e) {
-        showDebugMessage("❌ Gagal load media " + key + ": " + e.message, {level:'error'});
+        showDebugMessage("❌ Gagal load media " + key + ": " + (e?.message||e), {level:'error'});
     }
 }
 
+// -------------------- helper renderPrayerTimes --------------------
+function renderPrayerTimes(prayerTimesObj, containerIds) {
+    // prayerTimesObj keys: subuh,dzuhur,ashar,maghrib,isya,imsak,syuruq
+    const times = [
+        {key:'imsak', label:'Imsak'},
+        {key:'subuh', label:'Subuh'},
+        {key:'syuruq', label:'Syuruq'},
+        {key:'dzuhur', label:'Dzuhur'},
+        {key:'ashar', label:'Ashar'},
+        {key:'maghrib', label:'Maghrib'},
+        {key:'isya', label:'Isya'}
+    ];
+    const html = times.map(t => {
+        const v = (prayerTimesObj && prayerTimesObj[t.key]) ? prayerTimesObj[t.key] : '--:--';
+        return `<div class="prayer-card"><div class="prayer-name">${t.label}</div><div class="prayer-time">${v}</div></div>`;
+    }).join('');
+    for (const id of containerIds) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    }
+}
 // Fungsi untuk menyimpan database ke IndexedDB
 async function saveDatabaseToIndexedDB() {
     return new Promise((resolve, reject) => {
@@ -1228,50 +1262,70 @@ function toggletema() {
     }
 }
 
-function toggleAdmin() {
+async function toggleAdmin() {
     const panel = document.getElementById('adminPanel');
     const overlay = document.getElementById('adminOverlay');
 
-    // Jika sedang aktif → tutup
+    // === Jika panel sedang aktif → tutup ===
     if (panel.classList.contains('active')) {
         panel.classList.remove('active');
         overlay.classList.remove('active');
-        return; // penting!
-    }
-
-    // === Cegah error jika settings belum siap ===
-    if (!settings) {
-        showDebugMessage("⚠ Settings belum siap untuk membuka admin panel");
         return;
     }
 
-    document.getElementById('adminMasjidName').value = settings.masjidName ?? "";
-    document.getElementById('adminMasjidAddress').value = settings.masjidAddress ?? "";
+    // Pastikan database sudah load
+    if (!window.settings) {
+        showDebugMessage("⚠ Settings belum siap. Menunggu load dari database...");
+        return;
+    }
 
-    // Prayer times aman
+    // Ambil helper get()
+    const get = id => document.getElementById(id);
+
+    // ==== MASJID INFO ====
+    get('adminMasjidName').value = settings.masjidName ?? "";
+    get('adminMasjidAddress').value = settings.masjidAddress ?? "";
+
+    // ==== PRAYER TIMES ====
     const p = settings.prayerTimes ?? {};
-    adminSubuh.value = p.subuh ?? "";
-    adminSyuruq.value = p.syuruq ?? "";
-    adminImsak.value = p.imsak ?? "";
-    adminDzuhur.value = p.dzuhur ?? "";
-    adminAshar.value = p.ashar ?? "";
-    adminMaghrib.value = p.maghrib ?? "";
-    adminIsya.value = p.isya ?? "";
+    get('adminSubuh').value   = p.subuh   ?? "";
+    get('adminSyuruq').value  = p.syuruq  ?? "";
+    get('adminImsak').value   = p.imsak   ?? "";
+    get('adminDzuhur').value  = p.dzuhur  ?? "";
+    get('adminAshar').value   = p.ashar   ?? "";
+    get('adminMaghrib').value = p.maghrib ?? "";
+    get('adminIsya').value    = p.isya    ?? "";
 
-    // Quote aman
+    // ==== QUOTE ====
     const q = settings.quote ?? {};
-    adminQuoteText.value = (q.text ?? "").replace(/"/g, "");
-    adminQuoteSource.value = q.source ?? "";
+    get('adminQuoteText').value = (q.text ?? "").replace(/"/g, "");
+    get('adminQuoteSource').value = q.source ?? "";
 
-    adminRunningText.value = settings.runningText ?? "";
+    // ==== RUNNING TEXT ====
+    get('adminRunningText').value = settings.runningText ?? "";
 
-    // Buka panel
+    // ==== VIDEO / MEDIA (jika ada) ====
+    const mv = settings.videos ?? {};
+    if (mv.quran) get('adminVideoQuranInfo').textContent = mv.quran.filename ?? "";
+    if (mv.kajian) get('adminVideoKajianInfo').textContent = mv.kajian.filename ?? "";
+
+    // ==== PDF / KAJIAN ====
+    const kj = settings.kajian ?? {};
+    if (kj.file) get('adminKajianInfo').textContent = kj.file ?? "";
+
+    // ==== BUKA PANEL ====
     panel.classList.add('active');
     overlay.classList.add('active');
 
-    adminIndex = 0;
-    setAdminFocus(adminIndex);
+    // ==== FOCUS PERTAMA ====
+    try {
+        adminIndex = 0;
+        setAdminFocus(adminIndex);
+    } catch (e) {
+        console.warn("setAdminFocus error diabaikan:", e);
+    }
 }
+
 
 
 // Kode JavaScript lainnya tetap sama
