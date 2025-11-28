@@ -2144,8 +2144,8 @@ async function uploadPdf(formId, tableName, slideshowId) {
             showDebugMessage("✔️ PDF Berhasil di upload!");
            // window.location.reload();
         } catch (error) {
-            console.error('Error during upload:', error);
-            alert('Gagal upload PDF. Periksa console untuk detail error.');
+            //console.error('Error during upload:', error);
+            showDebugMessage("PDF GAGAL upload!");
         }
     });
 }
