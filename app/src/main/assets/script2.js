@@ -600,7 +600,7 @@ async function showContent(contentId) {
         document.addEventListener('keydown', handler);
     }
 
-    toggleSidebar();
+    //toggleSidebar();
     // --- UPDATE PRAYER UI SETELAH HALAMAN TAMPIL ---
     setTimeout(() => {
         if (typeof refreshPrayerTimesUI === 'function') {
