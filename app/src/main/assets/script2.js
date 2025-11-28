@@ -125,6 +125,8 @@ window.addEventListener('load', async () => {
  // window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
  // window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
  // window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
+     refreshPrayerTimesUI();   // <-- wajib setelah loadSettings
+    
      window.__intervals = window.__intervals || [];
     window.__intervals.push(setInterval(() => safeRunQuiet("updateClock", updateClock), 1000));
     window.__intervals.push(setInterval(() => safeRunQuiet("updateCountdowns", updateCountdowns), 1000));
@@ -187,18 +189,26 @@ async function safeRunQuiet(stepName, fn) {
     document.getElementById('clock').textContent = `${hours}${separator}${minutes}`;
 } */
 function updateClock() {
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = now.getSeconds();
+    try {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = now.getSeconds();
 
-    document.getElementById('h').textContent = hours;
-    document.getElementById('m').textContent = minutes;
+        const elH = document.getElementById('h');
+        const elM = document.getElementById('m');
+        const sep  = document.getElementById('sep');
 
-    // separator "hilang" tapi tidak memengaruhi layout
-    const sep = document.getElementById('sep');
-    sep.style.opacity = (seconds % 2 === 0) ? '1' : '0';
+        if (elH) elH.textContent = hours;
+        if (elM) elM.textContent = minutes;
+
+        if (sep) sep.style.opacity = (seconds % 2 === 0) ? '1' : '0';
+    } catch (err) {
+        console.log("updateClock error:", err);
+    }
 }
+setInterval(updateClock, 1000);
+updateClock();
 
 
 async function loadAdminFormFromDB() {
@@ -715,6 +725,7 @@ async function saveAllMediaFromForm() {
 }
 // ==== perbaikan saveAdminSettings: simpan media dulu, lalu DB, lalu reload UI ====
 async function saveAdminSettings() {
+    
   const btn = document.getElementById('simpanadmin');
   if (btn) btn.disabled = true;
   showDebugMessage("⏳ ▶ Menyimpan pengaturan admin...", {level:'info', persist:false});
@@ -787,11 +798,13 @@ async function saveAdminSettings() {
 
     // 6) persist DB to IndexedDB
     await saveDatabaseToIndexedDB();
-
+    refreshPrayerTimesUI();
+      
     // 7) reload UI + admin form from DB (ensure UI reads from DB)
     if (typeof loadSettings === 'function') await loadSettings();
     if (typeof loadAdminFormFromDB === 'function') await loadAdminFormFromDB();
-
+      
+    toggleAdmin();
     // 8) info + toggle admin panel (after UI updated)
     showDebugMessage("✅ Pengaturan admin berhasil disimpan", {level:'info', persist:true});
     setTimeout(() => { if (typeof toggleAdmin === 'function') toggleAdmin(); }, 150);
@@ -804,6 +817,19 @@ async function saveAdminSettings() {
     if (btn) btn.disabled = false;
   }
 }
+
+function refreshPrayerTimesUI() {
+    if (!settings || !settings.prayerTimes) return;
+    const p = settings.prayerTimes;
+    document.getElementById("uiSubuh").textContent = p.subuh || "-";
+    document.getElementById("uiSyuruq").textContent = p.syuruq || "-";
+    document.getElementById("uiImsak").textContent = p.imsak || "-";
+    document.getElementById("uiDzuhur").textContent = p.dzuhur || "-";
+    document.getElementById("uiAshar").textContent = p.ashar || "-";
+    document.getElementById("uiMaghrib").textContent = p.maghrib || "-";
+    document.getElementById("uiIsya").textContent = p.isya || "-";
+}
+
 
 function saveFileToIndexedDB(key, uint8) {
   return new Promise((resolve) => {
