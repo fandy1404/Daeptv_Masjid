@@ -186,6 +186,21 @@ async function safeRunQuiet(stepName, fn) {
     const separator = seconds % 2 === 0 ? ':' : ' ';
     document.getElementById('clock').textContent = `${hours}${separator}${minutes}`;
 } */
+function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = now.getSeconds();
+
+    document.getElementById('h').textContent = hours;
+    document.getElementById('m').textContent = minutes;
+
+    // separator "hilang" tapi tidak memengaruhi layout
+    const sep = document.getElementById('sep');
+    sep.style.opacity = (seconds % 2 === 0) ? '1' : '0';
+}
+
+// ==================================================== //
 async function loadAdminFormFromDB() {
   try {
     if (!db) {
