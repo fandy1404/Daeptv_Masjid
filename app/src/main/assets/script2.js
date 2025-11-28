@@ -820,16 +820,22 @@ async function saveAdminSettings() {
 
 function refreshPrayerTimesUI() {
     if (!settings || !settings.prayerTimes) return;
-    const p = settings.prayerTimes;
-    document.getElementById("uiSubuh").textContent = p.subuh || "-";
-    document.getElementById("uiSyuruq").textContent = p.syuruq || "-";
-    document.getElementById("uiImsak").textContent = p.imsak || "-";
-    document.getElementById("uiDzuhur").textContent = p.dzuhur || "-";
-    document.getElementById("uiAshar").textContent = p.ashar || "-";
-    document.getElementById("uiMaghrib").textContent = p.maghrib || "-";
-    document.getElementById("uiIsya").textContent = p.isya || "-";
-}
 
+    const p = settings.prayerTimes;
+
+    const safeSet = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value || "-";
+    };
+
+    safeSet("uiSubuh", p.subuh);
+    safeSet("uiSyuruq", p.syuruq);
+    safeSet("uiImsak", p.imsak);
+    safeSet("uiDzuhur", p.dzuhur);
+    safeSet("uiAshar", p.ashar);
+    safeSet("uiMaghrib", p.maghrib);
+    safeSet("uiIsya", p.isya);
+}
 
 function saveFileToIndexedDB(key, uint8) {
   return new Promise((resolve) => {
