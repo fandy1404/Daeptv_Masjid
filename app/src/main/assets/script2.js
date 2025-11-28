@@ -2140,7 +2140,7 @@ async function uploadPdf(formId, tableName, slideshowId) {
                     localStorage.setItem('activeSection', 'ayat');  // Fallback jika tidak ada
                 }
     
-            window.location.reload();
+           // window.location.reload();
         } catch (error) {
             console.error('Error during upload:', error);
             alert('Gagal upload PDF. Periksa console untuk detail error.');
