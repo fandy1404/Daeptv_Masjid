@@ -2113,24 +2113,26 @@ async function uploadPdf(formId, tableName, slideshowId) {
             // Baca file sebagai ArrayBuffer
             const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            console.log('File read successfully, size:', uint8Array.length);
+           // console.log('File read successfully, size:', uint8Array.length);
             
-            console.log('Inserting into database...');
+           // console.log('Inserting into database...');
             // Simpan sebagai BLOB ke database
             db.run(`INSERT OR REPLACE INTO ${tableName} (id, pdf_data) VALUES (1, ?)`, [uint8Array]);
-            console.log('Database insert successful');
+           // console.log('Database insert successful');
+            showDebugMessage("🚀 Database insert successful");
             
-            console.log('Saving to IndexedDB...');
+            //console.log('Saving to IndexedDB...');
             // Simpan ke IndexedDB untuk persistensi
             await saveDatabaseToIndexedDB();
-            console.log('IndexedDB save successful');
+          //  console.log('IndexedDB save successful');
+            showDebugMessage("🚀 indexed save successful");
             
-            console.log('Loading slideshow...');
+            //console.log('Loading slideshow...');
             // Load dan tampilkan slideshow
             await loadPdfSlideshow(uint8Array, slideshowId);
-            console.log('Slideshow loaded successfully');
-            
-            alert('✔️ PDF Berhasil di upload!');
+            //console.log('Slideshow loaded successfully');
+            showDebugMessage("🚀 Slideshow successful");
+            //alert('✔️ PDF Berhasil di upload!');
             const activeSection = document.querySelector('.content-section.active');
                 if (activeSection) {
                     localStorage.setItem('activeSection', activeSection.id);
@@ -2139,7 +2141,7 @@ async function uploadPdf(formId, tableName, slideshowId) {
                     console.warn('No active section found, defaulting to ayat');
                     localStorage.setItem('activeSection', 'ayat');  // Fallback jika tidak ada
                 }
-    
+            showDebugMessage("✔️ PDF Berhasil di upload!");
            // window.location.reload();
         } catch (error) {
             console.error('Error during upload:', error);
