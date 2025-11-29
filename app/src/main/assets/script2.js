@@ -1007,7 +1007,7 @@ async function loadSettings() {
       } else {
         // do not overwrite masjidName/Address if no row found — keep existing value
       }
-    } catch(e){ showDebugMessage("❌ loadSettings.masjid_info", e); }
+    } catch(e){ showDebugMessage("❌ loadSettings.masjid_info" + e); }
 
     // PRAYER TIMES
     try {
@@ -1022,7 +1022,7 @@ async function loadSettings() {
                 settings.prayerTimes.imsak = times[6];
                 settings.prayerTimes.syuruq = times[7];
             }
-    } catch(e){ showDebugMessage("❌ loadSettings.prayer_times", e); }
+    } catch(e){ showDebugMessage("❌ loadSettings.prayer_times" + e); }
 
     // IQOMAH
     try {
@@ -1035,7 +1035,7 @@ async function loadSettings() {
                 settings.iqomahDelays.maghrib = delays[4];
                 settings.iqomahDelays.isya = delays[5];
             }
-    } catch(e){ showDebugMessage("❌ loadSettings.iqomah", e); }
+    } catch(e){ showDebugMessage("❌ loadSettings.iqomah" + e); }
 
     // QUOTE
     try {
@@ -1046,7 +1046,7 @@ async function loadSettings() {
                 document.getElementById('quoteText').textContent = settings.quote.text;
                 document.getElementById('quoteSource').textContent = settings.quote.source;
             }
-    } catch(e){ showDebugMessage("❌ loadSettings.quote", e); }
+    } catch(e){ showDebugMessage("❌ loadSettings.quote" + e); }
 
     // RUNNING TEXT
     try {
@@ -1055,7 +1055,7 @@ async function loadSettings() {
                 settings.runningText = runningText.values[0][1];
                 document.getElementById('runningText').textContent = settings.runningText;
             }
-    } catch(e){ showDebugMessage("❌ loadSettings.running_text", e); }
+    } catch(e){ showDebugMessage("❌ loadSettings.running_text" + e); }
 
     // Render prayer times into containers
     try{
@@ -1071,7 +1071,7 @@ async function loadSettings() {
             if (jadwalPdf && jadwalPdf.values[0][0]) {
                 await loadPdfSlideshow(jadwalPdf.values[0][0], 'jadwalSlideshow');
             }
-    } catch(e){ showDebugMessage("❌ loadSettings.pdf", e); }
+    } catch(e){ showDebugMessage("❌ loadSettings.pdf" + e); }
 
 
     // LOAD MEDIA -> images/videos/audio (these you already use)
