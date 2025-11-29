@@ -1053,7 +1053,7 @@ async function loadSettings() {
      const runningText = db.exec("SELECT * FROM running_text WHERE id = 1")[0];
             if (runningText) {
                 settings.runningText = runningText.values[0][1];
-                document.getElementById('runningText').textContent = settings.runningText;
+                document.getElementById('runningText1').textContent = settings.runningText;
             }
     } catch(e){ showDebugMessage("❌ loadSettings.running_text" + e); }
 
