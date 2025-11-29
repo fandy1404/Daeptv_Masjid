@@ -125,7 +125,7 @@ window.addEventListener('load', async () => {
  // window.__intervals.push(setInterval(() => safeRun("updateClock interval", updateClock), 1000));
  // window.__intervals.push(setInterval(() => safeRun("updateCountdowns interval", updateCountdowns), 1000));
  // window.__intervals.push(setInterval(() => safeRun("updateDates interval", updateDates), 60000));
-     refreshPrayerTimesUI();   // <-- wajib setelah loadSettings
+    // refreshPrayerTimesUI();   // <-- wajib setelah loadSettings
     
      window.__intervals = window.__intervals || [];
     window.__intervals.push(setInterval(() => safeRunQuiet("updateClock", updateClock), 1000));
@@ -994,8 +994,8 @@ function tableExists(name) {
 async function loadSettings() {
   try {
     // keep existing defaults, only overwrite keys we actually read from DB
-  //  window.settings = window.settings || {...defaultSettings};
-    let settings = { ...defaultSettings };
+    window.settings = window.settings || {...defaultSettings};
+   // let settings = { ...defaultSettings };
     // MASJID INFO
     try {
        const masjidInfo = db.exec("SELECT * FROM masjid_info WHERE id = 1")[0];
@@ -1022,9 +1022,6 @@ async function loadSettings() {
                 settings.prayerTimes.imsak = times[6];
                 settings.prayerTimes.syuruq = times[7];
             }
-      } else {
-        // keep existing window.settings.prayerTimes (probably default or previously loaded)
-      }
     } catch(e){ showDebugMessage("❌ loadSettings.prayer_times", e); }
 
     // IQOMAH
