@@ -767,20 +767,6 @@ async function saveAdminSettings() {
     // 0) simpan media dulu (jika ada)
     await saveAllMediaFromForm();
 
-    // 1) simpan masjid_info
-    db.run(`CREATE TABLE IF NOT EXISTS masjid_info (id INTEGER PRIMARY KEY, name TEXT, address TEXT);`);
-    db.run(`INSERT OR REPLACE INTO masjid_info (id, name, address) VALUES (1, ?, ?)`, [name, address]);
-
-    // 2) prayer_times
-    db.run(`CREATE TABLE IF NOT EXISTS prayer_times (
-      id INTEGER PRIMARY KEY,
-      subuh TEXT, dzuhur TEXT, ashar TEXT, maghrib TEXT, isya TEXT, imsak TEXT, syuruq TEXT
-    );`);
-    db.run(`INSERT OR REPLACE INTO prayer_times (id, subuh, dzuhur, ashar, maghrib, isya, imsak, syuruq)
-      VALUES (1, ?,?,?,?,?,?,?)`,
-      [prayerTimes.subuh, prayerTimes.dzuhur, prayerTimes.ashar, prayerTimes.maghrib, prayerTimes.isya, prayerTimes.imsak, prayerTimes.syuruq]
-    );
-
  settings.iqomahDelays = {
     subuh: parseInt(document.getElementById('delaySubuh').value) || 10,
     dzuhur: parseInt(document.getElementById('delayDzuhur').value) || 1,
@@ -798,7 +784,8 @@ async function saveAdminSettings() {
     db.run("INSERT OR REPLACE INTO running_text (id, text) VALUES (1, ?)", [settings.runningText]);
     // 6) persist DB to IndexedDB
     await saveDatabaseToIndexedDB();
-          
+          await loadAdminFormFromDB();
+
     // 7) reload UI + admin form from DB (ensure UI reads from DB)
    // if (typeof loadSettings === 'function') await loadSettings();
    // if (typeof loadAdminFormFromDB === 'function') await loadAdminFormFromDB();
@@ -957,17 +944,17 @@ async function initDatabase() {
         // ===============================
         // 7. PDF TABLES
         // ===============================
-     //   db.run(`CREATE TABLE IF NOT EXISTS pdf_ayat (id INTEGER PRIMARY KEY, pdf_data BLOB);`);
-      //  db.run(`CREATE TABLE IF NOT EXISTS pdf_kas (id INTEGER PRIMARY KEY, pdf_data BLOB);`);
-       // db.run(`CREATE TABLE IF NOT EXISTS pdf_jadwal (id INTEGER PRIMARY KEY, pdf_data BLOB);`);
+        db.run(`CREATE TABLE IF NOT EXISTS pdf_ayat (id INTEGER PRIMARY KEY, pdf_data BLOB);`);
+       db.run(`CREATE TABLE IF NOT EXISTS pdf_kas (id INTEGER PRIMARY KEY, pdf_data BLOB);`);
+       db.run(`CREATE TABLE IF NOT EXISTS pdf_jadwal (id INTEGER PRIMARY KEY, pdf_data BLOB);`);
 
         // create rows if empty
-    /*    ["pdf_ayat","pdf_kas","pdf_jadwal"].forEach(tbl => {
+       ["pdf_ayat","pdf_kas","pdf_jadwal"].forEach(tbl => {
             const z = db.exec(`SELECT COUNT(*) FROM ${tbl}`);
             if (!z.length || !z[0].values.length || z[0].values[0][0] === 0) {
                 db.run(`INSERT INTO ${tbl} (id,pdf_data) VALUES (1,NULL)`);
             }
-        }); */
+        }); 
 
         // ===============================
         // 8. SAVE DB BACK
@@ -1058,21 +1045,19 @@ async function loadSettings() {
     } catch(e){ showDebugMessage("❌ loadSettings.running_text" + e); }
 
     // Render prayer times into containers
-    try{
-        const ayatPdf = db.exec("SELECT pdf_data FROM ayat_pdf WHERE id = 1")[0];
-            if (ayatPdf && ayatPdf.values[0][0]) {
-                await loadPdfSlideshow(ayatPdf.values[0][0], 'ayatSlideshow');
-            }
-        const kasPdf = db.exec("SELECT pdf_data FROM kas_pdf WHERE id = 1")[0];
-            if (kasPdf && kasPdf.values[0][0]) {
-                await loadPdfSlideshow(kasPdf.values[0][0], 'kasSlideshow');
-            }
-        const jadwalPdf = db.exec("SELECT pdf_data FROM jadwal_pdf WHERE id = 1")[0];
-            if (jadwalPdf && jadwalPdf.values[0][0]) {
-                await loadPdfSlideshow(jadwalPdf.values[0][0], 'jadwalSlideshow');
-            }
-    } catch(e){ showDebugMessage("❌ loadSettings.pdf" + e); }
+   try {
+    const ayatPdf = db.exec("SELECT pdf_data FROM pdf_ayat WHERE id = 1")[0]?.values[0][0];
+    if (ayatPdf) await loadPdfSlideshow(ayatPdf, 'ayatSlideshow');
 
+    const kasPdf = db.exec("SELECT pdf_data FROM pdf_kas WHERE id = 1")[0]?.values[0][0];
+    if (kasPdf) await loadPdfSlideshow(kasPdf, 'kasSlideshow');
+
+    const jadwalPdf = db.exec("SELECT pdf_data FROM pdf_jadwal WHERE id = 1")[0]?.values[0][0];
+    if (jadwalPdf) await loadPdfSlideshow(jadwalPdf, 'jadwalSlideshow');
+
+} catch(e){
+    showDebugMessage("❌ loadSettings.pdf: " + e);
+}
 
     // LOAD MEDIA -> images/videos/audio (these you already use)
     loadMediaToUI("hero_image","heroImage");
