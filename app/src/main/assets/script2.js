@@ -586,11 +586,44 @@ function toggletema() {
     sidebar1.classList.toggle('active');
 } */
 // Content navigation
+async function loadVideoQuran() {
+    const url = await loadMediaOPFSurl("video_quran");
+    if (!url) return;
+    const video = document.getElementById("videoQuran");
+    const src = video.querySelector("source") || video;
+    src.src = url;
+    video.load();
+}
+async function loadVideoKajian() {
+    const url = await loadMediaOPFSurl("video_kajian");
+    if (!url) return;
+    const video = document.getElementById("videoKajian");
+    const src = video.querySelector("source") || video;
+    src.src = url;
+    video.load();
+}
+async function loadVideoKhutbah() {
+    const url = await loadMediaOPFSurl("video_khutbah");
+    if (!url) return;
+    const video = document.getElementById("videoKhutbah");
+    const src = video.querySelector("source") || video;
+    src.src = url;
+    video.load();
+}
+async function loadAudioCountdown() {
+    const url = await loadMediaOPFSurl("audio");
+    if (!url) return;
+    const audio = document.getElementById("audioCountdown");
+    audio.src = url;
+    audio.load();
+}
+
 async function showContent(contentId) {
-    // --- PAUSE VIDEO SAAT PINDAH HALAMAN ---
-    const currentActiveSection = document.querySelector('.content-section.active');
-    if (currentActiveSection) {
-        const id = currentActiveSection.id;
+
+    // ---------------- PAUSE VIDEO SECTION LAMA ----------------
+    const active = document.querySelector('.content-section.active');
+    if (active) {
+        const id = active.id;
         const mapVideo = {
             'video-quran': 'videoQuran',
             'video-kajian': 'videoKajian',
@@ -598,86 +631,94 @@ async function showContent(contentId) {
         };
         if (mapVideo[id]) {
             const vid = document.getElementById(mapVideo[id]);
-            if (vid) { vid.pause(); vid.currentTime = 0; }
+            if (vid) { vid.pause(); }
         }
     }
 
-    // --- HIDE SEMUA SECTION & MENU ---
+    // ---------------- RESET UI SECTION ----------------
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
 
-    // --- TAMPILKAN HALAMAN BARU ---
-    document.getElementById(contentId).classList.add('active');
+    // ---------------- AKTIFKAN CONTENT ----------------
+    const section = document.getElementById(contentId);
+    if (section) section.classList.add('active');
 
-    // Tambah kelas active ke menu
-    if (event && event.target) {
-        event.target.classList.add('active');
-    } else {
-        const menuItem = document.getElementById(`menu-${contentId}`);
-        if (menuItem) menuItem.classList.add('active');
-    }
+    // ---------------- AKTIFKAN MENU ----------------
+    const menuItem = document.getElementById(`menu-${contentId}`);
+    if (menuItem) menuItem.classList.add('active');
 
-    // --- LOAD PDF ---
+
+    // ---------------- LOAD PDF (lebih aman) ----------------
     try {
-        const mapping = {
-            'ayat':   ['ayat_pdf', 'ayatSlideshow'],
-            'kas':    ['kas_pdf', 'kasSlideshow'],
+        const pdfMap = {
+            'ayat': ['ayat_pdf', 'ayatSlideshow'],
+            'kas': ['kas_pdf', 'kasSlideshow'],
             'jadwal-kajian': ['jadwal_pdf', 'jadwalSlideshow']
         };
-        if (mapping[contentId]) {
-            const [table, slideshow] = mapping[contentId];
+
+        if (pdfMap[contentId]) {
+            const [table, slideshow] = pdfMap[contentId];
+
             const stmt = db.prepare(`SELECT pdf_data FROM ${table} WHERE id = 1`);
             const res = stmt.getAsObject();
-            if (res.pdf_data) await loadPdfSlideshow(res.pdf_data, slideshow);
             stmt.free();
+
+            if (res.pdf_data) {
+                setTimeout(() => {
+                    loadPdfSlideshow(res.pdf_data, slideshow);
+                }, 50);
+            }
         }
     } catch (e) {
-        console.error('Error loading PDF slideshow:', e);
-    } finally {
-        toggleSidebar();
+        console.error("PDF load error:", e);
     }
 
-    // --- AUTO PLAY VIDEO ---
+
+    // ---------------- LOAD VIDEO OPFS ----------------
+    if (contentId === "video-quran") await loadVideoQuran();
+    if (contentId === "video-kajian") await loadVideoKajian();
+    if (contentId === "khutbah")     await loadVideoKhutbah();
+
+
+    // ---------------- AUTOPLAY VIDEO ----------------
     const autoMap = {
         'video-quran': 'videoQuran',
         'video-kajian': 'videoKajian',
         'khutbah': 'videoKhutbah'
     };
     if (autoMap[contentId]) {
-        const video = document.getElementById(autoMap[contentId]);
-        if (video) { video.loop = true; video.play(); }
+        const v = document.getElementById(autoMap[contentId]);
+        if (v) {
+            v.loop = true;
+            setTimeout(() => v.play(), 120);
+        }
     }
 
-    // --- KEYDOWN HANDLER ---
+    // ---------------- KEYDOWN HANDLER ----------------
+    document.removeEventListener('keydown', handleAyatKeydown);
+    document.removeEventListener('keydown', handleKasKeydown);
+    document.removeEventListener('keydown', handleJadwalKeydown);
+
     const keyMap = {
         'ayat': ['ayat-ayat', handleAyatKeydown],
         'kas': ['kas-kas', handleKasKeydown],
         'jadwal-kajian': ['jadwal-jadwal', handleJadwalKeydown]
     };
-    // remove all old listeners
-    document.removeEventListener('keydown', handleAyatKeydown);
-    document.removeEventListener('keydown', handleKasKeydown);
-    document.removeEventListener('keydown', handleJadwalKeydown);
 
     if (keyMap[contentId]) {
         const [formId, handler] = keyMap[contentId];
         const frm = document.getElementById(formId);
-        if (frm) frm.classList.toggle('hidden');
+        if (frm) frm.classList.remove('hidden');     // FIX: jangan toggle
         document.addEventListener('keydown', handler);
     }
 
-    //toggleSidebar();
-    // --- UPDATE PRAYER UI SETELAH HALAMAN TAMPIL ---
-    setTimeout(() => {
-        if (typeof refreshPrayerTimesUI === 'function') {
-            safeRunQuiet("refreshPrayerTimesUI", refreshPrayerTimesUI);
-        }
-        if (typeof updatePrayerTimes === 'function') {
-            safeRunQuiet("updatePrayerTimes", updatePrayerTimes);
-        }
-    }, 50);
-}
 
+    // ---------------- REFRESH PRAYER UI (lebih aman) ----------------
+    setTimeout(() => {
+        if (window.refreshPrayerTimesUI) safeRunQuiet("refreshPrayerTimesUI", refreshPrayerTimesUI);
+        if (window.updatePrayerTimes)    safeRunQuiet("updatePrayerTimes", updatePrayerTimes);
+    }, 200);
+}
 
 // -------------------- helpers existing (keep) --------------------
 function fileToBase64(file) {
@@ -714,8 +755,56 @@ async function saveMediaBase64(key, file) {
     }
 }
 
+async function saveMediaOPFS(key, file) {
+    try {
+        const root = await navigator.storage.getDirectory();
+        const fileHandle = await root.getFileHandle(key, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(file);
+        await writable.close();
+        showDebugMessage("💾 OPFS saved: " + key);
+        return true;
+    } catch (err) {
+        showDebugMessage("❌ OPFS save error: " + err.message, { level: "error" });
+        return false;
+    }
+}
+
+async function loadMediaOPFS(key) {
+    try {
+        const root = await navigator.storage.getDirectory();
+        const fileHandle = await root.getFileHandle(key);
+        const file = await fileHandle.getFile();
+        const url = URL.createObjectURL(file);
+        return url;
+    } catch (err) {
+        showDebugMessage("⚠ OPFS load fail: " + key + " — " + err.message);
+        return null;
+    }
+}
+async function loadVideo(key, elementId) {
+    const url = await loadMediaOPFS(key);
+    if (!url) return;
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const source = el.querySelector("source");
+    if (source) source.src = url; else el.src = url;
+    el.load();
+}
+async function loadAudio(key, elementId) {
+    const url = await loadMediaOPFS(key);
+    if (!url) return;
+    const el = document.getElementById(elementId);
+    el.src = url;
+    el.load();
+}
+async function loadImage(key, elementId) {
+    const url = await loadMediaOPFS(key);
+    document.getElementById(elementId).src = url;
+}
+
 // -------------------- saveAllMediaFromForm --------------------
-async function saveAllMediaFromForm() {
+async function saveAllMediaFromForm1() {
     // mapping dari key DB -> id input form
     const map = {
         "hero_image": "adminHeroImage",
@@ -744,6 +833,43 @@ async function saveAllMediaFromForm() {
         }
     }
 }
+async function saveAllMediaFromForm() {
+    const map = {
+        "hero_image": "adminHeroImage",
+        "video_quran": "adminVideoQuran",
+        "video_kajian": "adminVideoKajian",
+        "video_khutbah": "adminVideoKhutbah",
+        "audio": "adminAudio"
+    };
+
+    for (const key of Object.keys(map)) {
+        try {
+            const input = document.getElementById(map[key]);
+            if (!input) {
+                showDebugMessage("⚠ input tidak ditemukan: " + map[key]);
+                continue;
+            }
+
+            const file = input.files?.[0];
+            if (!file) {
+                showDebugMessage("ℹ Tidak ada file di input: " + map[key]);
+                continue;
+            }
+
+            // === Simpan ke OPFS (tanpa base64) ===
+            const ok = await saveMediaOPFS(key, file);
+
+            if (ok)
+                showDebugMessage("✔ Media tersimpan OPFS: " + key);
+            else
+                showDebugMessage("❌ Gagal simpan media (OPFS): " + key);
+
+        } catch (e) {
+            showDebugMessage("❌ saveAllMediaFromForm error key=" + key + " : " + (e?.message||e), { level: "error" });
+        }
+    }
+}
+
 
 // ==== perbaikan saveAdminSettings: simpan media dulu, lalu DB, lalu reload UI ====
 async function saveAdminSettings() {
