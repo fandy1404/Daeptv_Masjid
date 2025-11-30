@@ -667,10 +667,8 @@ async function showContent(contentId) {
 
         if (pdfMap[contentId]) {
             const [key, slideshowId] = pdfMap[contentId];
-
             // kosongkan viewer dulu agar tidak ghost canvas
             document.getElementById(slideshowId).innerHTML = "";
-
             // load setelah UI stable
             setTimeout(() => loadPdfSlideshow(key, slideshowId), 80);
         }
@@ -709,15 +707,12 @@ async function showContent(contentId) {
             setTimeout(() => el.play().catch(() => {}), 120);
         }
     }
-
-
     /* ---------------------------------------
        7) KEYBOARD HANDLER 
     ----------------------------------------*/
     document.removeEventListener('keydown', handleAyatKeydown);
     document.removeEventListener('keydown', handleKasKeydown);
     document.removeEventListener('keydown', handleJadwalKeydown);
-
     const keyMap = {
         'ayat': ['ayat-ayat', handleAyatKeydown],
         'kas': ['kas-kas', handleKasKeydown],
@@ -730,15 +725,15 @@ async function showContent(contentId) {
         if (frm) frm.classList.remove('hidden');
         document.addEventListener('keydown', handler);
     }
-
-
     /* ---------------------------------------
        8) REFRESH UI SHOLAT
     ----------------------------------------*/
     setTimeout(() => {
-        safeRunQuiet("refreshPrayerTimesUI", window.refreshPrayerTimesUI);
+        //safeRunQuiet("refreshPrayerTimesUI", window.refreshPrayerTimesUI);
         safeRunQuiet("updatePrayerTimes", window.updatePrayerTimes);
     }, 200);
+    localStorage.setItem("activeSection", contentId);
+    toggleSidebar();
 }
 
 
@@ -2275,69 +2270,43 @@ document.addEventListener('DOMContentLoaded', function() {
             observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
 });
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// Fungsi untuk upload PDF dan simpan sebagai BLOB ke database
-async function uploadPdf(formId, tableName, slideshowId) {
+async function uploadPdf(formId, opfsKey, slideshowId) {
+
     const form = document.getElementById(formId);
+    if (!form) return;
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        showDebugMessage("📥 Upload PDF dimulai...");
 
         const fileInput = form.querySelector('input[type="file"]');
         const file = fileInput.files[0];
 
-        if (!file) {
-            alert("Pilih file PDF terlebih dahulu!");
-            return;
-        }
+        if (!file) return alert("Pilih PDF dulu!");
+        if (file.type !== "application/pdf") return alert("File harus PDF!");
 
-        if (file.type !== "application/pdf") {
-            alert("File harus PDF!");
-            return;
-        }
+        const arrayBuffer = await file.arrayBuffer();
 
-        if (file.size > 10 * 1024 * 1024) {
-            alert("Ukuran file maksimal 10MB!");
-            return;
-        }
-
+        // ===== Simpan ke OPFS =====
         try {
-            // ---------------------------------------------
-            // 🔥 SIMPAN ke OPFS agar persist setelah reload
-            // ---------------------------------------------
-            const key = `${tableName}.pdf`;
-
-            const saved = await saveMediaOPFS(key, file);
-            if (!saved) {
-                showDebugMessage("❌ Gagal menyimpan PDF ke OPFS", { level: "error" });
-                return;
-            }
-
-            showDebugMessage("💾 PDF berhasil disimpan ke OPFS");
-
-            // ---------------------------------------------------------
-            // 🔥 Langsung baca PDF dari OPFS → tampilkan slideshow
-            // ---------------------------------------------------------
-            const pdfBytes = await loadPdfFromOPFS(key);
-            if (!pdfBytes) {
-                showDebugMessage("❌ Gagal meload PDF dari OPFS", { level: "error" });
-                return;
-            }
-
-            await loadPdfSlideshow(pdfBytes, slideshowId);
-
-            showDebugMessage("🚀 Slideshow tampil!");
-
-            // Simpan aktif section
-            const active = document.querySelector(".content-section.active");
-            if (active) {
-                localStorage.setItem("activeSection", active.id);
-            }
-
-            showDebugMessage("✔️ PDF Berhasil diupload!");
+            const root = await navigator.storage.getDirectory();
+            const handle = await root.getFileHandle(opfsKey, { create: true });
+            const writable = await handle.createWritable();
+            await writable.write(arrayBuffer);
+            await writable.close();
+            showDebugMessage("✔ PDF tersimpan di OPFS: " + opfsKey);
         } catch (err) {
-            showDebugMessage("❌ Error upload PDF: " + err.message, { level: "error" });
+            showDebugMessage("❌ Gagal simpan OPFS: " + err.message);
+            return;
         }
+
+        // ===== Langsung tampilkan slideshow =====
+        await loadPdfSlideshow(opfsKey, slideshowId);
+
+        // simpan section aktif
+        const activeSection = document.querySelector('.content-section.active');
+        if (activeSection) localStorage.setItem('activeSection', activeSection.id);
+
+        showDebugMessage("🚀 PDF berhasil di-upload dan ditampilkan!");
     });
 }
 
@@ -2428,115 +2397,39 @@ async function loadPdfFromOPFS(key) {
 }
 
 async function loadPdfSlideshow(opfsKey, slideshowId) {
-    const slideshow = document.getElementById(slideshowId);
-    slideshow.innerHTML = ''; 
+    const container = document.getElementById(slideshowId);
+    if (!container) return;
 
-    // Ambil PDF dari OPFS
-    const pdfBytes = await loadPdfFromOPFS(opfsKey);
+    container.innerHTML = "⏳ Loading PDF...";
 
-    if (!pdfBytes) {
-        slideshow.innerHTML = '<p>❌ PDF tidak ditemukan di OPFS.</p>';
+    const pdfBuffer = await loadPdfFromOPFS(opfsKey);
+    if (!pdfBuffer) {
+        container.innerHTML = "⚠ Belum ada PDF.";
         return;
     }
 
-    try {
-        // Muat PDF dengan PDF.js
-        const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-        const numPages = pdf.numPages;
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
 
-        // Render halaman PDF satu per satu
-        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const scale = 1.5;
-            const viewport = page.getViewport({ scale });
+    const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
 
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
+    container.innerHTML = "";
 
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 });
 
-            await page.render({ canvasContext: context, viewport }).promise;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
 
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'page';
-            pageDiv.appendChild(canvas);
+        await page.render({ canvasContext: ctx, viewport }).promise;
 
-            slideshow.appendChild(pageDiv);
-        }
-
-        // FULLSCREEN BUTTON
-        const fullscreenBtn = document.createElement('button');
-        fullscreenBtn.innerHTML = '↑';
-        fullscreenBtn.className = 'fullscreen-btn';
-        fullscreenBtn.onclick = () => slideshow.requestFullscreen();
-        slideshow.appendChild(fullscreenBtn);
-
-        // Manual Controls
-        const controls = document.createElement('div');
-        controls.className = 'controls';
-
-        const prevBtn = document.createElement('button');
-        prevBtn.textContent = 'Prev';
-        prevBtn.onclick = () => flipPage(-1);
-
-        const nextBtn = document.createElement('button');
-        nextBtn.textContent = 'Next';
-        nextBtn.onclick = () => flipPage(1);
-
-        controls.appendChild(prevBtn);
-        controls.appendChild(nextBtn);
-        slideshow.appendChild(controls);
-
-        let currentPage = 0;
-        const pages = slideshow.querySelectorAll('.page');
-        const totalPages = pages.length;
-
-        const flipPage = (direction) => {
-            const oldPage = pages[currentPage];
-            const nextIndex = (currentPage + direction + totalPages) % totalPages;
-            const newPage = pages[nextIndex];
-
-            pages.forEach(p => {
-                p.classList.remove('active', 'flipping-out', 'flipping-in');
-                p.style.opacity = '0';
-                p.style.zIndex = '1';
-            });
-
-            oldPage.classList.add('flipping-out');
-            oldPage.style.opacity = '1';
-            oldPage.style.zIndex = '5';
-
-            setTimeout(() => {
-                oldPage.style.opacity = '0';
-                oldPage.style.zIndex = '1';
-
-                newPage.classList.add('flipping-in');
-                newPage.style.opacity = '1';
-                newPage.style.zIndex = '10';
-
-                setTimeout(() => {
-                    newPage.classList.remove('flipping-in');
-                    newPage.classList.add('active');
-                    currentPage = nextIndex;
-                }, 400);
-            }, 400);
-        };
-
-        // Tampilkan halaman pertama
-        pages[0].classList.add('active');
-        pages[0].style.opacity = '1';
-        pages[0].style.zIndex = '10';
-
-        // Auto-flip
-        setInterval(() => {
-            flipPage(1);
-        }, 7000);
-
-    } catch (err) {
-        console.error('❌ Error loading PDF:', err);
-        slideshow.innerHTML = '<p>Gagal memuat PDF.</p>';
+        container.appendChild(canvas);
     }
+
+    showDebugMessage("📄 PDF ditampilkan: " + opfsKey);
 }
 
 // Fungsi navigasi untuk fallback slideshow
