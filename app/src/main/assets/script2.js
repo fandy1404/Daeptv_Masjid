@@ -483,29 +483,28 @@ if (isUtamaActive && timeDiffMinutes > 0 && timeDiffMinutes <= 5) {
     azanCountdownOverlay.classList.add('active');
     iqomahCountdownOverlay.classList.remove('active');
 
-    // Hitung dan tampilkan hitungan mundur jam:menit:detik
-    const diffHours = Math.floor(timeDiffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((timeDiffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const diffSeconds = Math.floor((timeDiffMs % (1000 * 60)) / 1000);
+    const diffHours = Math.floor(timeDiffMs / 3600000);
+    const diffMinutes = Math.floor((timeDiffMs % 3600000) / 60000);
+    const diffSeconds = Math.floor((timeDiffMs % 60000) / 1000);
 
     azanCountdownOverlay.querySelector('.countdown-timer').textContent =
         `${String(diffHours).padStart(2, '0')}:${String(diffMinutes).padStart(2, '0')}:${String(diffSeconds).padStart(2, '0')}`;
     azanCountdownOverlay.querySelector('h3').textContent = `Menuju Azan ${nextPrayer.name}`;
 
-    if (!hasAudioPlayed && settings.audio) {
-        const blob = new Blob([settings.audio], { type: 'audio/mp3' });
-        audioElement.src = URL.createObjectURL(blob);
+    if (!hasAudioPlayed && window.azanOPFSUrl) {
+        audioElement.src = window.azanOPFSUrl; 
         audioElement.play().catch(e => console.log("Audio play failed", e));
         hasAudioPlayed = true;
     }
 } else {
     azanCountdownOverlay.classList.remove('active');
-    // Saat azan countdown tidak aktif, hentikan audio jika diputar dan kosongkan timer
+
     if (hasAudioPlayed) {
         audioElement.pause();
         audioElement.currentTime = 0;
         hasAudioPlayed = false;
     }
+
     azanCountdownOverlay.querySelector('.countdown-timer').textContent = '--:--:--';
 }
 
@@ -620,81 +619,98 @@ async function loadAudioCountdown() {
 
 async function showContent(contentId) {
 
-    // ---------------- PAUSE VIDEO SECTION LAMA ----------------
+    /* ---------------------------------------
+       1) PAUSE VIDEO SECTION YANG LAMA 
+    ----------------------------------------*/
     const active = document.querySelector('.content-section.active');
     if (active) {
-        const id = active.id;
         const mapVideo = {
             'video-quran': 'videoQuran',
             'video-kajian': 'videoKajian',
             'khutbah': 'videoKhutbah'
         };
-        if (mapVideo[id]) {
-            const vid = document.getElementById(mapVideo[id]);
-            if (vid) { vid.pause(); }
+        const vidId = mapVideo[active.id];
+        if (vidId) {
+            const v = document.getElementById(vidId);
+            if (v) v.pause();
         }
     }
 
-    // ---------------- RESET UI SECTION ----------------
-    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+    /* ---------------------------------------
+       2) RESET UI
+    ----------------------------------------*/
+    document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
 
-    // ---------------- AKTIFKAN CONTENT ----------------
+    /* ---------------------------------------
+       3) AKTIFKAN BAGIAN YANG DIPILIH
+    ----------------------------------------*/
     const section = document.getElementById(contentId);
     if (section) section.classList.add('active');
 
-    // ---------------- AKTIFKAN MENU ----------------
     const menuItem = document.getElementById(`menu-${contentId}`);
     if (menuItem) menuItem.classList.add('active');
 
 
-    // ---------------- LOAD PDF (lebih aman) ----------------
+    /* ---------------------------------------
+       4) LOAD PDF via OPFS
+    ----------------------------------------*/
     try {
         const pdfMap = {
-            'ayat': ['ayat_pdf', 'ayatSlideshow'],
-            'kas': ['kas_pdf', 'kasSlideshow'],
-            'jadwal-kajian': ['jadwal_pdf', 'jadwalSlideshow']
+            'ayat':          ['ayat.pdf', 'ayatSlideshow'],
+            'kas':           ['kas.pdf', 'kasSlideshow'],
+            'jadwal-kajian': ['jadwal.pdf', 'jadwalSlideshow']
         };
 
         if (pdfMap[contentId]) {
-            const [table, slideshow] = pdfMap[contentId];
+            const [key, slideshowId] = pdfMap[contentId];
 
-            const stmt = db.prepare(`SELECT pdf_data FROM ${table} WHERE id = 1`);
-            const res = stmt.getAsObject();
-            stmt.free();
+            // kosongkan viewer dulu agar tidak ghost canvas
+            document.getElementById(slideshowId).innerHTML = "";
 
-            if (res.pdf_data) {
-                setTimeout(() => {
-                    loadPdfSlideshow(res.pdf_data, slideshow);
-                }, 50);
-            }
+            // load setelah UI stable
+            setTimeout(() => loadPdfSlideshow(key, slideshowId), 80);
         }
-    } catch (e) {
-        console.error("PDF load error:", e);
+    } catch (err) {
+        console.error("PDF load error:", err);
     }
 
 
-    // ---------------- LOAD VIDEO OPFS ----------------
-    if (contentId === "video-quran") await loadVideoQuran();
-    if (contentId === "video-kajian") await loadVideoKajian();
-    if (contentId === "khutbah")     await loadVideoKhutbah();
+    /* ---------------------------------------
+       5) LOAD VIDEO via OPFS
+    ----------------------------------------*/
+    const videoLoadMap = {
+        "video-quran": loadVideoQuran,
+        "video-kajian": loadVideoKajian,
+        "khutbah": loadVideoKhutbah
+    };
 
+    if (videoLoadMap[contentId]) {
+        await videoLoadMap[contentId](); // OPFS load
+    }
 
-    // ---------------- AUTOPLAY VIDEO ----------------
+    /* ---------------------------------------
+       6) AUTOPLAY VIDEO
+    ----------------------------------------*/
     const autoMap = {
         'video-quran': 'videoQuran',
         'video-kajian': 'videoKajian',
         'khutbah': 'videoKhutbah'
     };
-    if (autoMap[contentId]) {
-        const v = document.getElementById(autoMap[contentId]);
-        if (v) {
-            v.loop = true;
-            setTimeout(() => v.play(), 120);
+
+    const autoVid = autoMap[contentId];
+    if (autoVid) {
+        const el = document.getElementById(autoVid);
+        if (el) {
+            el.loop = true;
+            setTimeout(() => el.play().catch(() => {}), 120);
         }
     }
 
-    // ---------------- KEYDOWN HANDLER ----------------
+
+    /* ---------------------------------------
+       7) KEYBOARD HANDLER 
+    ----------------------------------------*/
     document.removeEventListener('keydown', handleAyatKeydown);
     document.removeEventListener('keydown', handleKasKeydown);
     document.removeEventListener('keydown', handleJadwalKeydown);
@@ -708,17 +724,20 @@ async function showContent(contentId) {
     if (keyMap[contentId]) {
         const [formId, handler] = keyMap[contentId];
         const frm = document.getElementById(formId);
-        if (frm) frm.classList.remove('hidden');     // FIX: jangan toggle
+        if (frm) frm.classList.remove('hidden');
         document.addEventListener('keydown', handler);
     }
 
 
-    // ---------------- REFRESH PRAYER UI (lebih aman) ----------------
+    /* ---------------------------------------
+       8) REFRESH UI SHOLAT
+    ----------------------------------------*/
     setTimeout(() => {
-        if (window.refreshPrayerTimesUI) safeRunQuiet("refreshPrayerTimesUI", refreshPrayerTimesUI);
-        if (window.updatePrayerTimes)    safeRunQuiet("updatePrayerTimes", updatePrayerTimes);
+        safeRunQuiet("refreshPrayerTimesUI", window.refreshPrayerTimesUI);
+        safeRunQuiet("updatePrayerTimes", window.updatePrayerTimes);
     }, 200);
 }
+
 
 // -------------------- helpers existing (keep) --------------------
 function fileToBase64(file) {
@@ -754,7 +773,7 @@ async function saveMediaBase64(key, file) {
         showDebugMessage("❌ Gagal simpan media " + key + ": " + (err?.message || err), {level:"error"});
     }
 }
-
+//////////////////////////////////////////////////////////////
 async function saveMediaOPFS(key, file) {
     try {
         const root = await navigator.storage.getDirectory();
@@ -763,7 +782,9 @@ async function saveMediaOPFS(key, file) {
         await writable.write(file);
         await writable.close();
         showDebugMessage("💾 OPFS saved: " + key);
-        return true;
+        // === PERBAIKAN PENTING ===
+        const f = await fileHandle.getFile();
+        return URL.createObjectURL(f);
     } catch (err) {
         showDebugMessage("❌ OPFS save error: " + err.message, { level: "error" });
         return false;
@@ -857,9 +878,16 @@ async function saveAllMediaFromForm() {
             }
 
             // === Simpan ke OPFS (tanpa base64) ===
-            const ok = await saveMediaOPFS(key, file);
+           const url = await saveMediaToOPFS(key, file);
 
-            if (ok)
+                // Simpan ke settings agar saat reload langsung terbaca
+                if (key === "hero_image") settings.heroImage = url;
+                if (key === "video_quran") settings.videos.quran = url;
+                if (key === "video_kajian") settings.videos.kajian = url;
+                if (key === "video_khutbah") settings.videos.khutbah = url;
+                if (key === "audio_azan") settings.audio = url;
+
+            if (url)
                 showDebugMessage("✔ Media tersimpan OPFS: " + key);
             else
                 showDebugMessage("❌ Gagal simpan media (OPFS): " + key);
@@ -2247,80 +2275,69 @@ document.addEventListener('DOMContentLoaded', function() {
 // Fungsi untuk upload PDF dan simpan sebagai BLOB ke database
 async function uploadPdf(formId, tableName, slideshowId) {
     const form = document.getElementById(formId);
-    form.addEventListener('submit', async (e) => {
+
+    form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        console.log('Starting upload for form:', formId); // Debug log
-        
-        // Pastikan tabel ada sebelum query
-        if (!tableExists(tableName)) {
-            console.log('Table does not exist, creating:', tableName);
-            db.run(`CREATE TABLE ${tableName} (id INTEGER PRIMARY KEY, pdf_data BLOB)`);
-        }
-        
+        showDebugMessage("📥 Upload PDF dimulai...");
+
         const fileInput = form.querySelector('input[type="file"]');
         const file = fileInput.files[0];
-        
+
         if (!file) {
-            console.error('No file selected');
-            alert('Pilih file PDF terlebih dahulu!');
+            alert("Pilih file PDF terlebih dahulu!");
             return;
         }
-        
-        if (file.type !== 'application/pdf') {
-            console.error('Invalid file type:', file.type);
-            alert('File harus berupa PDF!');
+
+        if (file.type !== "application/pdf") {
+            alert("File harus PDF!");
             return;
         }
-        
-        // Validasi ukuran (maksimal 10MB)
-        const maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.size > maxSize) {
-            console.error('File too large:', file.size);
-            alert('Ukuran file maksimal 10MB!');
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Ukuran file maksimal 10MB!");
             return;
         }
-        
+
         try {
-            console.log('Reading file as ArrayBuffer...');
-            // Baca file sebagai ArrayBuffer
-            const arrayBuffer = await file.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-           // console.log('File read successfully, size:', uint8Array.length);
-            
-           // console.log('Inserting into database...');
-            // Simpan sebagai BLOB ke database
-            db.run(`INSERT OR REPLACE INTO ${tableName} (id, pdf_data) VALUES (1, ?)`, [uint8Array]);
-           // console.log('Database insert successful');
-            showDebugMessage("🚀 Database insert successful");
-            
-            //console.log('Saving to IndexedDB...');
-            // Simpan ke IndexedDB untuk persistensi
-            await saveDatabaseToIndexedDB();
-          //  console.log('IndexedDB save successful');
-            showDebugMessage("🚀 indexed save successful");
-            
-            //console.log('Loading slideshow...');
-            // Load dan tampilkan slideshow
-            await loadPdfSlideshow(uint8Array, slideshowId);
-            //console.log('Slideshow loaded successfully');
-            showDebugMessage("🚀 Slideshow successful");
-            //alert('✔️ PDF Berhasil di upload!');
-            const activeSection = document.querySelector('.content-section.active');
-                if (activeSection) {
-                    localStorage.setItem('activeSection', activeSection.id);
-                    console.log('Active section saved:', activeSection.id);  // Debug log
-                } else {
-                    console.warn('No active section found, defaulting to ayat');
-                    localStorage.setItem('activeSection', 'ayat');  // Fallback jika tidak ada
-                }
-            showDebugMessage("✔️ PDF Berhasil di upload!");
-           // window.location.reload();
-        } catch (error) {
-            //console.error('Error during upload:', error);
-            showDebugMessage("PDF GAGAL upload!");
+            // ---------------------------------------------
+            // 🔥 SIMPAN ke OPFS agar persist setelah reload
+            // ---------------------------------------------
+            const key = `${tableName}.pdf`;
+
+            const saved = await saveMediaOPFS(key, file);
+            if (!saved) {
+                showDebugMessage("❌ Gagal menyimpan PDF ke OPFS", { level: "error" });
+                return;
+            }
+
+            showDebugMessage("💾 PDF berhasil disimpan ke OPFS");
+
+            // ---------------------------------------------------------
+            // 🔥 Langsung baca PDF dari OPFS → tampilkan slideshow
+            // ---------------------------------------------------------
+            const pdfBytes = await loadPdfFromOPFS(key);
+            if (!pdfBytes) {
+                showDebugMessage("❌ Gagal meload PDF dari OPFS", { level: "error" });
+                return;
+            }
+
+            await loadPdfSlideshow(pdfBytes, slideshowId);
+
+            showDebugMessage("🚀 Slideshow tampil!");
+
+            // Simpan aktif section
+            const active = document.querySelector(".content-section.active");
+            if (active) {
+                localStorage.setItem("activeSection", active.id);
+            }
+
+            showDebugMessage("✔️ PDF Berhasil diupload!");
+        } catch (err) {
+            showDebugMessage("❌ Error upload PDF: " + err.message, { level: "error" });
         }
     });
 }
+
 // Fungsi load PDF slideshow (LENGKAP)
 /* async function loadPdfSlideshow(pdfBlob, slideshowId) {
     const slideshow = document.getElementById(slideshowId);
@@ -2393,142 +2410,132 @@ async function uploadPdf(formId, tableName, slideshowId) {
     }
 } */
 // Fungsi untuk inisialisasi flipbook saat PDF di-load
-async function loadPdfSlideshow(pdfBlob, slideshowId) {
+async function loadPdfFromOPFS(key) {
+    try {
+        const root = await navigator.storage.getDirectory();
+        const fileHandle = await root.getFileHandle(key);
+        const file = await fileHandle.getFile();
+        const arrayBuffer = await file.arrayBuffer();
+        showDebugMessage("📂 OPFS loaded: " + key);
+        return new Uint8Array(arrayBuffer);
+    } catch (err) {
+        showDebugMessage("❌ OPFS load error: " + err.message, { level: "error" });
+        return null;
+    }
+}
+
+async function loadPdfSlideshow(opfsKey, slideshowId) {
     const slideshow = document.getElementById(slideshowId);
-    slideshow.innerHTML = ''; // Clear previous content
-    
-    if (!pdfBlob) {
-        slideshow.innerHTML = '<p>Tidak ada PDF untuk ditampilkan.</p>';
+    slideshow.innerHTML = ''; 
+
+    // Ambil PDF dari OPFS
+    const pdfBytes = await loadPdfFromOPFS(opfsKey);
+
+    if (!pdfBytes) {
+        slideshow.innerHTML = '<p>❌ PDF tidak ditemukan di OPFS.</p>';
         return;
     }
-    
+
     try {
-        // Load PDF dari BLOB
-        const pdf = await pdfjsLib.getDocument({ data: pdfBlob }).promise;
+        // Muat PDF dengan PDF.js
+        const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
         const numPages = pdf.numPages;
-        
-        // Render setiap halaman sebagai canvas
+
+        // Render halaman PDF satu per satu
         for (let pageNum = 1; pageNum <= numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
-            const scale = 1.5; // Scale untuk kualitas
+            const scale = 1.5;
             const viewport = page.getViewport({ scale });
-            
-            // Buat canvas
+
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
+
             canvas.height = viewport.height;
             canvas.width = viewport.width;
-            
-            // Render halaman ke canvas
-            const renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
-            await page.render(renderContext).promise;
-            
-            // Bungkus dalam div page
+
+            await page.render({ canvasContext: context, viewport }).promise;
+
             const pageDiv = document.createElement('div');
             pageDiv.className = 'page';
             pageDiv.appendChild(canvas);
+
             slideshow.appendChild(pageDiv);
         }
-        
-        // Tambahkan tombol fullscreen (arrowUp)
+
+        // FULLSCREEN BUTTON
         const fullscreenBtn = document.createElement('button');
-        fullscreenBtn.innerHTML = '↑'; // Ikon arrowUp
+        fullscreenBtn.innerHTML = '↑';
         fullscreenBtn.className = 'fullscreen-btn';
-        fullscreenBtn.onclick = () => {
-            if (slideshow.requestFullscreen) {
-                slideshow.requestFullscreen();
-            } else if (slideshow.webkitRequestFullscreen) { // Safari
-                slideshow.webkitRequestFullscreen();
-            } else if (slideshow.msRequestFullscreen) { // IE/Edge
-                slideshow.msRequestFullscreen();
-            } else {
-                alert('Fullscreen tidak didukung di browser ini.');
-            }
-        };
+        fullscreenBtn.onclick = () => slideshow.requestFullscreen();
         slideshow.appendChild(fullscreenBtn);
-        
-        // Tambahkan kontrol manual (Next/Prev)
+
+        // Manual Controls
         const controls = document.createElement('div');
         controls.className = 'controls';
-        
+
         const prevBtn = document.createElement('button');
-        prevBtn.innerHTML = '<button class="btn btn-save">Prev</button>';
+        prevBtn.textContent = 'Prev';
         prevBtn.onclick = () => flipPage(-1);
-        
+
         const nextBtn = document.createElement('button');
-        nextBtn.innerHTML = 'Next';
+        nextBtn.textContent = 'Next';
         nextBtn.onclick = () => flipPage(1);
-        
+
         controls.appendChild(prevBtn);
         controls.appendChild(nextBtn);
         slideshow.appendChild(controls);
-        
-        // Variabel untuk animasi flipbook
+
         let currentPage = 0;
         const pages = slideshow.querySelectorAll('.page');
         const totalPages = pages.length;
-        
-        // Fungsi untuk flip halaman dengan animasi
-               // Fungsi untuk flip halaman dengan animasi
+
         const flipPage = (direction) => {
             const oldPage = pages[currentPage];
-            const nextPageIndex = (currentPage + direction + totalPages) % totalPages;
-            const newPage = pages[nextPageIndex];
-            
-            // Hapus kelas sebelumnya dari semua halaman
-            pages.forEach(page => {
-                page.classList.remove('active', 'flipping-out', 'flipping-in');
-                page.style.opacity = '0'; // Pastikan semua tersembunyi dulu
-                page.style.zIndex = '1';
+            const nextIndex = (currentPage + direction + totalPages) % totalPages;
+            const newPage = pages[nextIndex];
+
+            pages.forEach(p => {
+                p.classList.remove('active', 'flipping-out', 'flipping-in');
+                p.style.opacity = '0';
+                p.style.zIndex = '1';
             });
-            
-            // Set halaman lama untuk flip out
+
             oldPage.classList.add('flipping-out');
-            oldPage.style.opacity = '1'; // Tampilkan sementara untuk animasi
+            oldPage.style.opacity = '1';
             oldPage.style.zIndex = '5';
-            
-            // Setelah transisi flip out, sembunyikan halaman lama
+
             setTimeout(() => {
-                oldPage.classList.remove('flipping-out');
                 oldPage.style.opacity = '0';
                 oldPage.style.zIndex = '1';
-                
-                // Sekarang tampilkan halaman baru dengan flip in
+
                 newPage.classList.add('flipping-in');
                 newPage.style.opacity = '1';
                 newPage.style.zIndex = '10';
-                
-                // Setelah flip in selesai, set sebagai active
+
                 setTimeout(() => {
                     newPage.classList.remove('flipping-in');
                     newPage.classList.add('active');
-                    currentPage = nextPageIndex; // Update currentPage setelah animasi
+                    currentPage = nextIndex;
                 }, 400);
             }, 400);
-            
-            //console.log('Flipping from page', currentPage + 1, 'to', nextPageIndex + 1);
         };
-        
-        // Inisialisasi: Tampilkan halaman pertama
+
+        // Tampilkan halaman pertama
         pages[0].classList.add('active');
         pages[0].style.opacity = '1';
         pages[0].style.zIndex = '10';
 
-        
-        // Auto-flip setiap 3 detik
+        // Auto-flip
         setInterval(() => {
             flipPage(1);
         }, 7000);
-        
-       // console.log('Flipbook loaded for:', slideshowId);
-    } catch (error) {
-        console.error('Error loading PDF flipbook:', error);
-        slideshow.innerHTML = '<p>Gagal memuat PDF. Periksa file.</p>';
+
+    } catch (err) {
+        console.error('❌ Error loading PDF:', err);
+        slideshow.innerHTML = '<p>Gagal memuat PDF.</p>';
     }
 }
+
 // Fungsi navigasi untuk fallback slideshow
 let currentPageIndex = {}; // Track halaman per slideshow
 function changePage(direction, slideshowId) {
