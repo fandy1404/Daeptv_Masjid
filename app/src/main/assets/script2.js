@@ -95,9 +95,6 @@ window.addEventListener('load', async () => {
         
     } catch(e) { showDebugMessage("⚠ restoreActiveSection err: " + (e.message||e)); }
   });
-     await uploadPdf('uploadAyatForm', 'ayat_pdf', 'ayatSlideshow');
-    await uploadPdf('uploadKasForm', 'kas_pdf', 'kasSlideshow');
-    await uploadPdf('uploadJadwalForm', 'jadwal_pdf', 'jadwalSlideshow');
   // fill iqomah inputs safely
   await safeRun("isiDelayIqomahKeForm", async () => {
     try {
@@ -136,6 +133,12 @@ window.addEventListener('load', async () => {
     window.__intervals.push(setInterval(() => safeRunQuiet("updateDates", updateDates), 60000));
     window.__intervals.push(setInterval(() => safeRunQuiet("updatePrayerTimes", updatePrayerTimes), 60000));
 
+     const last = localStorage.getItem("activeSection");
+    if (last) showContent(last);
+    // pasang uploader PDF (tidak dijalankan saat startup)
+    uploadPdf("uploadAyatForm", "ayat.pdf", "ayatSlideshow");
+    uploadPdf("uploadKasForm", "kas.pdf", "kasSlideshow");
+    uploadPdf("uploadJadwalForm", "jadwal.pdf", "jadwalSlideshow");
   // event tombol zoom / fullscreen / refresh
   try {
     document.getElementById('zoom-in').addEventListener('click', async () => {
